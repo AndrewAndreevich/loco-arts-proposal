@@ -118,5 +118,11 @@ src = src.replace("</body></html>", '<script src="data/tiers.js" defer></script>
 # builder goes right after the hero, before the proposal text
 src = src.replace("\n<section id=approach>", BUILDER + "\n<section id=approach>", 1)
 
+# cache-busting: GitHub Pages caches files for 10 min, so a new page with an old stylesheet looks broken
+import hashlib
+for asset in ["styles.css", "main.js", "builder.js", "data/tiers.js"]:
+    v = hashlib.sha1((ROOT / asset).read_bytes()).hexdigest()[:8]
+    src = src.replace(f'"{asset}"', f'"{asset}?v={v}"')
+
 (ROOT / "index.html").write_text(src, encoding="utf-8")
 print("index.html", len(src))
