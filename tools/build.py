@@ -15,8 +15,12 @@ src = src[src.lower().index("<!doctype"):src.lower().rindex("</html>") + len("</
 # --- head: fonts + stylesheet instead of the inline <style>
 src = re.sub(
     r'<link href="https://fonts.googleapis.com/css2[^"]+" rel="stylesheet">',
-    '<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500&display=swap" rel="stylesheet">',
+    '<link rel="preload" href="https://framerusercontent.com/assets/5uijHrcLgMOtvBU399PIdv0X2Yo.woff2" as="font" type="font/woff2" crossorigin>',
     src,
+)
+src = src.replace(
+    '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>',
+    '<link rel="preconnect" href="https://framerusercontent.com" crossorigin>',
 )
 src = re.sub(r"<style>.*?</style>", '<link rel="stylesheet" href="styles.css">\n<meta name="theme-color" content="#000000">', src, flags=re.S)
 src = src.replace(

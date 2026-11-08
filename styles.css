@@ -1,4 +1,9 @@
 /* LOCO Arts proposal — styled after loco-park.ge (see design-notes.md) */
+/* Graphik Ge Regular — the loco-park.ge font, loaded from their Framer CDN (not copied into this repo) */
+@font-face {
+  font-family: 'Graphik Ge'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url('https://framerusercontent.com/assets/5uijHrcLgMOtvBU399PIdv0X2Yo.woff2') format('woff2');
+}
 :root {
   color-scheme: dark;
   --bg: #000;
@@ -15,7 +20,7 @@
   --blue: #065DE7;
   --olive: #817016;
   --brown: #7E2D00;
-  --font: 'Hanken Grotesk', 'Graphik', Arial, sans-serif;
+  --font: 'Graphik Ge', 'Hanken Grotesk', Arial, sans-serif;
   --gut: clamp(12px, 2.8vw, 40px);
   --h: 36px;
 }
@@ -27,7 +32,7 @@ body {
   -webkit-font-smoothing: antialiased; overflow-x: hidden;
 }
 a { color: inherit; text-decoration: none; }
-b { font-weight: 500; color: var(--fg); }
+b { font-weight: 400; color: var(--fg); }
 img { max-width: 100%; }
 :focus-visible { outline: 2px solid var(--yellow); outline-offset: 3px; border-radius: 4px; }
 .skip { position: absolute; left: 12px; top: -60px; z-index: 50; background: var(--yellow); color: #000; padding: 10px 16px; border-radius: 999px; }
@@ -44,7 +49,7 @@ img { max-width: 100%; }
 }
 .tswitch button {
   width: 42px; height: 36px; border: 0; border-radius: 20px; background: transparent; color: #fff;
-  font: 500 15px/1 var(--font); cursor: pointer; transition: background-color .25s, color .25s;
+  font: 400 15px/1 var(--font); cursor: pointer; transition: background-color .25s, color .25s;
 }
 .tswitch button:hover { background: var(--pill); }
 .tswitch button[aria-pressed="true"] { background: var(--orange); color: #000; }
