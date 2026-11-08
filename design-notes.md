@@ -63,3 +63,19 @@ Playwright (`tools/inspect_ref.py`) at 1440×900 and 390×844, computed styles r
   marquee and all reveals, and content is visible without JavaScript.
 - **Focus.** 2px yellow `#FFD600` outline with 3px offset on every interactive element, plus a
   skip link.
+
+## Update: tier builder + exact LOCO visuals (Nov 2026)
+
+- **Logo**: the LOCO Park SVG is taken as-is from the loco-park.ge DOM (`assets/loco-park-logo.svg`,
+  254×68 viewBox, shown at 155px wide, centred, like the original).
+- **LOCO marquee**: the three row images are the original Framer assets
+  (`framerusercontent.com/images/…png`, 5862×205, ~13 KB each), saved as `assets/loco-row-1..3.png`
+  and looped with CSS at 120px row height; the middle row runs in the opposite direction, as on the site.
+- **Tier switch**: vertical dark pill top-right with an orange active circle, the same component as
+  their En / ქა switch, used for tiers 1 / 2 / 3. No top navigation, no extra header.
+- **Font**: still Hanken Grotesk. Graphik Ge is a commercial font licensed for loco-park.ge; it is
+  not copied or hot-linked here.
+- **Builder data** lives in `data/tiers.js`: rate $30/h, groups with screens, transitions, options per
+  tier, hours and monthly services. Tier defaults add up to 400 / 600 / 800 h = $12k / $18k / $24k
+  and 49 / 51 / 54 screens. Hours per group are our estimate; the 3D-scene CDN cost ($5–20/mo) is an
+  estimate not listed in the original proposal.

@@ -12,9 +12,18 @@
 <meta name="theme-color" content="#000000">
 </head>
 <body>
-<a class=skip href="#main">Skip to content</a>
-<header class=site-head><a class=logo href="#top">LOCO <span>ARTS</span></a></header>
-<nav class=pillnav aria-label="Sections"><ul><li><a href="#essential">Essential</a></li><li><a href="#signature">Signature</a></li><li><a href="#flagship">Flagship</a></li><li><a href="#compare">Comparison</a></li><li><a href="#prices">Prices</a></li><li><a href="#team">Team</a></li></ul></nav>
+<a class=skip href="#groups">Skip to the tier builder</a>
+<header class=top><a class=logo href="#top" aria-label="LOCO Park — top"><svg role="img" aria-label="LOCO Park" width="254" height="68" viewBox="0 0 254 68" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M216.213 7.31766L208.264 0.704254L208.256 29.645L211.454 32.3055L211.459 20.8466C213.617 21.7926 216.234 21.2297 217.863 19.3045C218.783 18.2173 219.226 17.0036 219.235 15.6598L219.236 13.0364C219.244 10.7272 218.497 9.21807 216.213 7.31766ZM211.455 7.60464L213.991 9.71409C215.681 11.1204 216.074 12.2195 216.077 13.4574L216.062 15.6833C216.049 16.2511 215.867 16.8334 215.465 17.3091C214.66 18.2604 213.251 18.3617 212.314 17.5825L211.469 16.8794L211.455 7.60464Z" fill="white"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M221.278 11.5321L226.075 15.5229L229.721 47.5043L226.295 44.6537L225.543 38.0453L221.34 34.5486L220.585 39.9027L217.615 37.4321L221.278 11.5321ZM221.873 30.7459L225.002 33.3494L223.457 19.6746L221.873 30.7459Z" fill="white"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M238.565 25.9149L230.617 19.3015L230.608 48.2422L233.806 50.9027L233.811 39.4438C234.627 39.8137 235.486 39.9491 236.368 39.8726L238.146 54.5135L241.572 57.3641L239.296 38.758C239.633 38.4979 239.947 38.2188 240.215 37.9017C241.135 36.8146 241.579 35.6009 241.587 34.257L241.588 31.6336C241.596 29.3244 240.85 27.8153 238.565 25.9149ZM233.807 26.2019L236.343 28.3113C238.033 29.7176 238.426 30.8167 238.43 32.0546L238.414 34.2805C238.401 34.8483 238.219 35.4307 237.817 35.9063C237.012 36.8576 235.603 36.9589 234.666 36.1797L233.821 35.4766L233.807 26.2019Z" fill="white"/>
+<path d="M253.894 38.6685L251.382 36.5781L246.13 42.7841L246.128 32.2072L242.93 29.5466L242.922 58.4873L246.12 61.1479L246.131 47.8416L248.24 45.3501L250.688 64.9487L254 67.7043L250.847 42.2698L253.894 38.6685Z" fill="white"/>
+<path d="M108.855 49.9551C108.855 57.2783 114.84 63.2149 122.223 63.2149H158.508V50.8391H126.042V49.0711L158.508 49.0711V36.6953L122.223 36.6953C114.84 36.6953 108.855 42.6319 108.855 49.9551Z" fill="white"/>
+<path d="M0 36.6953H17.1876V50.8391L51.5627 50.8391V63.215H14.323C6.41261 63.215 0 56.8543 0 49.008V36.6953Z" fill="white"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M66.8406 36.6953C59.4576 36.6953 53.4725 42.6319 53.4725 49.9551C53.4725 57.2783 59.4576 63.2149 66.8406 63.2149H93.5768C100.96 63.2149 106.945 57.2783 106.945 49.9551C106.945 42.6319 100.96 36.6953 93.5768 36.6953H66.8406ZM89.7573 49.0711H70.66V50.8391H89.7573V49.0711Z" fill="white"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M160.417 49.9551C160.417 42.6319 166.402 36.6953 173.785 36.6953H198.612C205.995 36.6953 211.98 42.6319 211.98 49.9551C211.98 57.2783 205.995 63.2149 198.612 63.2149H173.785C166.402 63.2149 160.417 57.2783 160.417 49.9551ZM177.605 49.0711H194.792V50.8391H177.605V49.0711Z" fill="white"/>
+</svg></a></header>
+<div class=tswitch role=group aria-label="Tier"><button type=button data-tier=E aria-pressed=false aria-label="1 Essential">1</button><button type=button data-tier=S aria-pressed=false aria-label="2 Signature">2</button><button type=button data-tier=F aria-pressed=false aria-label="3 Flagship">3</button></div>
 
 <main id=main>
 <div class=wrap id=top>
@@ -23,12 +32,30 @@
 <h1>LOCO<br> <span class=arts>ARTS</span></h1>
 <p class=lede data-split>A website for the LOCO Arts ecosystem — artists, art, programs, opportunities and community, in one place.</p>
 </div>
-<div class=marquee aria-hidden=true><div class=row><i style="background:var(--orange);width:calc(3.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--green);width:calc(2.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--pink);width:calc(2.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--lime);width:calc(3.6 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--blue);width:calc(2.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--yellow);width:calc(2.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--brown);width:calc(3.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--sky);width:calc(2.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--olive);width:calc(2.6 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--orange);width:calc(3.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--green);width:calc(2.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--pink);width:calc(2.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--lime);width:calc(3.6 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--blue);width:calc(2.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--yellow);width:calc(2.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--brown);width:calc(3.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--sky);width:calc(2.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--olive);width:calc(2.6 * clamp(56px,7.4vw,106px))"></i></div><div class=row><i style="background:var(--lime);width:calc(2.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--blue);width:calc(3.6 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--yellow);width:calc(2.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--brown);width:calc(2.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--sky);width:calc(3.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--olive);width:calc(2.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--orange);width:calc(2.6 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--green);width:calc(3.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--pink);width:calc(2.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--lime);width:calc(2.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--blue);width:calc(3.6 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--yellow);width:calc(2.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--brown);width:calc(2.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--sky);width:calc(3.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--olive);width:calc(2.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--orange);width:calc(2.6 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--green);width:calc(3.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--pink);width:calc(2.0 * clamp(56px,7.4vw,106px))"></i></div><div class=row><i style="background:var(--brown);width:calc(2.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--sky);width:calc(2.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--olive);width:calc(3.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--orange);width:calc(2.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--green);width:calc(2.6 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--pink);width:calc(3.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--lime);width:calc(2.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--blue);width:calc(2.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--yellow);width:calc(3.6 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--brown);width:calc(2.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--sky);width:calc(2.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--olive);width:calc(3.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--orange);width:calc(2.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--green);width:calc(2.6 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--pink);width:calc(3.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--lime);width:calc(2.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--blue);width:calc(2.0 * clamp(56px,7.4vw,106px))"></i><i style="background:var(--yellow);width:calc(3.6 * clamp(56px,7.4vw,106px))"></i></div></div>
+<div class=marquee aria-hidden=true><div class=row><img src="assets/loco-row-1.png" alt="" width=5862 height=205><img src="assets/loco-row-1.png" alt="" width=5862 height=205></div><div class=row><img src="assets/loco-row-2.png" alt="" width=5862 height=205><img src="assets/loco-row-2.png" alt="" width=5862 height=205></div><div class=row><img src="assets/loco-row-3.png" alt="" width=5862 height=205><img src="assets/loco-row-3.png" alt="" width=5862 height=205></div></div>
 <div>
 <div class=meta><span>Website design &amp; development proposal</span><span>For LOCO Arts, LOCO Park, Guramishvili Avenue, Tbilisi</span><span>November 2026</span></div>
 </div>
 </div>
 </div>
+
+<section id=builder class=builder aria-labelledby=builder-h><div class=wrap>
+<p class=kicker>Tier builder</p>
+<h2 id=builder-h data-split>Every group of screens, and how each tier changes it</h2>
+<p class=big>Each group is a set of screens with their transitions. Options under a group show which tier uses which solution. Switch a tier with 1 / 2 / 3, or pick options one by one: hours, price and monthly services update below. Rate: <span id=rate></span> per hour.</p>
+<div class=legend aria-hidden=true><span class="td td-E">Essential</span><span class="td td-S">Signature</span><span class="td td-F">Flagship</span><span class="td td-alt">Alternative</span><span class=legend-dash>dashed screen = comes with an option</span></div>
+<div id=groups></div>
+<noscript><p class=big>The tier builder needs JavaScript. The full proposal follows below.</p></noscript>
+<div class="grp services-box reveal" style="--gc:var(--yellow)"><div class=grp-head><span class=grp-n>€</span><h3>Monthly services for the chosen options</h3></div><ul id=services class=svc></ul></div>
+</div></section>
+<div class=calc role=region aria-label="Estimate"><div class=calc-in>
+<span class=c-cell><span class=c-l>Tier</span><span id=c-tier class=c-v>Essential</span></span>
+<span class=c-cell><span class=c-l>Screens</span><span id=c-screens class=c-v>49</span></span>
+<span class=c-cell><span class=c-l>Hours</span><span id=c-hours class=c-v>400</span></span>
+<span class="c-cell c-price"><span class=c-l>Price</span><span id=c-price class=c-v aria-live=polite>$12,000</span></span>
+<span class=c-cell><span class=c-l>Timeline</span><span id=c-weeks class=c-v>6 weeks</span></span>
+<span class=c-cell><span class=c-l>Services</span><span id=c-monthly class=c-v>$65–$195 / mo</span></span>
+</div></div>
 
 <section id=approach><div class=wrap>
 <p class=kicker>How we read the brief</p>
@@ -156,6 +183,8 @@
 </div></section>
 </main>
 <footer><span>LOCO Arts — website proposal, November 2026</span><span>LOCO Park, 84 David Guramishvili Avenue, Tbilisi</span></footer>
+<script src="data/tiers.js" defer></script>
+<script src="builder.js" defer></script>
 <script src="main.js" defer></script>
 </body>
 </html>

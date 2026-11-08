@@ -28,10 +28,15 @@ src = src.replace(
 header_old = re.search(r"<header class=bar>.*?</header>", src, flags=re.S).group(0)
 nav_links = re.search(r'<nav class=nav aria-label="Sections">(.*?)</nav>', header_old, flags=re.S).group(1)
 items = "".join(f"<li>{a}</li>" for a in re.findall(r"<a [^>]+>[^<]+</a>", nav_links))
+LOGO = (ROOT / "assets" / "loco-park-logo.svg").read_text(encoding="utf-8").strip()
+LOGO = LOGO.replace("<svg ", '<svg role="img" aria-label="LOCO Park" ', 1)
 header_new = (
-    '<a class=skip href="#main">Skip to content</a>\n'
-    '<header class=site-head><a class=logo href="#top">LOCO <span>ARTS</span></a></header>\n'
-    f'<nav class=pillnav aria-label="Sections"><ul>{items}</ul></nav>'
+    '<a class=skip href="#groups">Skip to the tier builder</a>\n'
+    f'<header class=top><a class=logo href="#top" aria-label="LOCO Park — top">{LOGO}</a></header>\n'
+    '<div class=tswitch role=group aria-label="Tier">'
+    '<button type=button data-tier=E aria-pressed=false aria-label="1 Essential">1</button>'
+    '<button type=button data-tier=S aria-pressed=false aria-label="2 Signature">2</button>'
+    '<button type=button data-tier=F aria-pressed=false aria-label="3 Flagship">3</button></div>'
 )
 src = src.replace(header_old, header_new)
 
@@ -55,7 +60,30 @@ def row(offset: int) -> str:
     return f'<div class=row>{once}{once}</div>'
 
 
-marquee = '<div class=marquee aria-hidden=true>' + "".join(row(r) for r in range(3)) + "</div>"
+marquee = '<div class=marquee aria-hidden=true>' + "".join(
+    f'<div class=row><img src="assets/loco-row-{r}.png" alt="" width=5862 height=205>'
+    f'<img src="assets/loco-row-{r}.png" alt="" width=5862 height=205></div>' for r in (1, 2, 3)
+) + "</div>"
+
+BUILDER = """
+<section id=builder class=builder aria-labelledby=builder-h><div class=wrap>
+<p class=kicker>Tier builder</p>
+<h2 id=builder-h data-split>Every group of screens, and how each tier changes it</h2>
+<p class=big>Each group is a set of screens with their transitions. Options under a group show which tier uses which solution. Switch a tier with 1 / 2 / 3, or pick options one by one: hours, price and monthly services update below. Rate: <span id=rate></span> per hour.</p>
+<div class=legend aria-hidden=true><span class="td td-E">Essential</span><span class="td td-S">Signature</span><span class="td td-F">Flagship</span><span class="td td-alt">Alternative</span><span class=legend-dash>dashed screen = comes with an option</span></div>
+<div id=groups></div>
+<noscript><p class=big>The tier builder needs JavaScript. The full proposal follows below.</p></noscript>
+<div class="grp services-box reveal" style="--gc:var(--yellow)"><div class=grp-head><span class=grp-n>€</span><h3>Monthly services for the chosen options</h3></div><ul id=services class=svc></ul></div>
+</div></section>
+<div class=calc role=region aria-label="Estimate"><div class=calc-in>
+<span class=c-cell><span class=c-l>Tier</span><span id=c-tier class=c-v>Essential</span></span>
+<span class=c-cell><span class=c-l>Screens</span><span id=c-screens class=c-v>49</span></span>
+<span class=c-cell><span class=c-l>Hours</span><span id=c-hours class=c-v>400</span></span>
+<span class="c-cell c-price"><span class=c-l>Price</span><span id=c-price class=c-v aria-live=polite>$12,000</span></span>
+<span class=c-cell><span class=c-l>Timeline</span><span id=c-weeks class=c-v>6 weeks</span></span>
+<span class=c-cell><span class=c-l>Services</span><span id=c-monthly class=c-v>$65–$195 / mo</span></span>
+</div></div>
+"""
 src = src.replace(strip, "")
 # put the marquee after the hero's first block (title + lede)
 src = src.replace("</p>\n</div>\n<div>\n\n<div class=meta>", "</p>\n</div>\n<div>\n<div class=meta>", 1)
@@ -85,7 +113,10 @@ assert "base64" not in src, "a photo was not replaced"
 
 # --- footer outside main with grid; script
 src = src.replace("<footer><div class=wrap>", "<footer>").replace("</span></div></footer>", "</span></footer>")
-src = src.replace("</body></html>", '<script src="main.js" defer></script>\n</body>\n</html>\n')
+src = src.replace("</body></html>", '<script src="data/tiers.js" defer></script>\n<script src="builder.js" defer></script>\n<script src="main.js" defer></script>\n</body>\n</html>\n')
+
+# builder goes right after the hero, before the proposal text
+src = src.replace("\n<section id=approach>", BUILDER + "\n<section id=approach>", 1)
 
 (ROOT / "index.html").write_text(src, encoding="utf-8")
 print("index.html", len(src))

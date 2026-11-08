@@ -14,6 +14,7 @@ OUT = Path(sys.argv[2]); OUT.mkdir(parents=True, exist_ok=True)
 new = (ROOT / "index.html").as_uri()
 
 TEXT_JS = """() => { document.querySelectorAll('details').forEach(d => d.open = true);
+  document.querySelectorAll('#builder, .calc').forEach(e => e.remove());
   return [...document.querySelectorAll('main, footer')].map(e => e.innerText).join('\\n'); }"""
 
 
@@ -46,7 +47,7 @@ with sync_playwright() as p:
         print(name, "scrollWidth/innerWidth", sw, "overflowing:", wide)
         pg.screenshot(path=str(OUT / f"new-{name}-top.png"))
         pg.screenshot(path=str(OUT / f"new-{name}-full.png"), full_page=True)
-        for sec in ["approach", "essential", "signature", "compare", "prices", "team"]:
+        for sec in ["builder", "g-artworks", "g-exhibitions", "g-membership", "g-design", "essential", "prices", "team"]:
             pg.evaluate(f"document.getElementById('{sec}').scrollIntoView()"); pg.wait_for_timeout(700)
             pg.screenshot(path=str(OUT / f"new-{name}-{sec}.png"))
         ctx.close()
