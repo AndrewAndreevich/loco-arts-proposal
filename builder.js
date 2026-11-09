@@ -41,18 +41,21 @@
     ? tiers.map((t) => `<span class="td td-${t}">${tierById[t].name}</span>`).join('')
     : '<span class="td td-alt">Alternative</span>');
 
+  // wireframes on a real grid: rows of equal cells, pill buttons, aligned text lines
+  const cells = (n, cls = 'blk') => `<i class="${cls}"></i>`.repeat(n);
   const WF = {
-    home: '<i class=hero></i><i class=row3></i><i class=row3></i><i class=l></i>',
-    list: '<i class=bar></i><i class=grid></i><i class=grid></i><i class=l s></i>',
-    detail: '<i class=split></i><i class=l></i><i class=l s></i><i class=l></i>',
-    form: '<i class=l s></i><i class=field></i><i class=field></i><i class=field></i><i class=btn></i>',
-    state: '<i class=circle></i><i class=l s></i>',
-    viewer: '<i class=stage></i><i class=l s></i>',
-    map: '<i class="stage dots"></i><i class=l s></i>',
-    dash: '<i class=row3></i><i class=row3></i><i class=grid></i>',
-    text: '<i class=l></i><i class=l></i><i class=l s></i><i class=l></i><i class=l></i>',
+    home: `<i class="blk acc" style="height:38%"></i><span class="r c3" style="height:22%">${cells(3)}</span><span class="r c4" style="height:14%">${cells(4)}</span><i class="ln w60"></i>`,
+    list: `<i class="ln acc w30"></i><span class="r c4">${cells(4, 'pill')}</span><span class="r c4 g2" style="height:52%">${cells(8)}</span>`,
+    detail: `<span class="r c2" style="height:52%"><i class="blk acc"></i><span class=col><i class="ln w90"></i><i class="ln w70"></i><i class="ln w80"></i><i class="ln w50"></i><i class="pill acc w50"></i></span></span><span class="r c4" style="height:20%">${cells(4)}</span>`,
+    form: `<i class="ln w40"></i><i class=field></i><i class=field></i><i class=field></i><i class="field tall"></i><i class="pill acc w30"></i>`,
+    state: `<span class=center><i class="dot acc"></i><i class="ln w40"></i><i class="pill w25"></i></span>`,
+    viewer: `<i class="blk stage" style="height:66%"><i class="dot acc"></i></i><span class="r c5">${cells(5, 'pill')}</span>`,
+    map: `<i class="blk dots" style="height:66%"></i><span class="r c4">${cells(4, 'pill')}</span>`,
+    dash: `<span class="r c3" style="height:24%"><i class="blk acc"></i><i class=blk></i><i class=blk></i></span><span class="r c4 g2" style="height:44%">${cells(8)}</span>`,
+    text: `<i class="ln acc w40"></i><i class="ln w95"></i><i class="ln w90"></i><i class="ln w95"></i><i class="ln w70"></i><i class="ln w90"></i><i class="ln w60"></i>`,
   };
-
+  const WF_NAV = '<span class="r wnav"><i class=logo></i><i class=sp></i><i class=ln></i><i class=ln></i><i class=ln></i><i class="pill acc"></i></span>';
+  const WF_FOOT = `<span class="r c4 foot">${cells(4, 'ln')}</span>`;
   // ---------- screens of a group: base + option-only, with tiers that bring them ----------
   function groupScreens(g) {
     const list = g.pages.map((p) => ({ ...p, opt: null }));
@@ -79,7 +82,7 @@
     const edges = []; const exits = []; const entries = [];
     screens.forEach((s) => {
       (s.to || []).forEach((t) => (ids.has(t) ? edges : exits).push([s.id, t]));
-      if (s.from) (ids.has(s.from) ? edges : entries).push(ids.has(s.from) ? [s.from, s.id] : [s.from, s.id]);
+      if (s.from) (ids.has(s.from) ? edges : entries).push([s.from, s.id]);
     });
     const pos = {};
     order.forEach((id, i) => { pos[id] = [i, 0]; });
@@ -94,11 +97,24 @@
     [...new Set(exits.map((e) => e[1]))].forEach((t) => ghost('out:' + t, pos[exits.find((e) => e[1] === t)[0]][0]));
     const cols = Math.max(...Object.values(pos).map((p) => p[0])) + 1;
     const twoRows = entries.length + exits.length > 0;
-    return { edges, exits, entries, pos, cols, twoRows };
+    // lanes for threads that jump over the row: shortest spans lowest, no overlaps within a lane
+    const jumps = edges.filter(([a, b]) => pos[b][0] - pos[a][0] !== 1)
+      .map(([a, b]) => ({ a, b, lo: Math.min(pos[a][0], pos[b][0]), hi: Math.max(pos[a][0], pos[b][0]) }))
+      .sort((x, y) => (x.hi - x.lo) - (y.hi - y.lo));
+    const lanes = [];
+    jumps.forEach((j) => {
+      let l = 0;
+      while (lanes[l] && lanes[l].some((o) => !(j.hi < o.lo || j.lo > o.hi))) l += 1;
+      (lanes[l] = lanes[l] || []).push(j);
+      j.lane = l;
+    });
+    const lane = Object.fromEntries(jumps.map((j) => [`${j.a}>${j.b}`, j.lane]));
+    return { edges, exits, entries, pos, cols, twoRows, lane, laneCount: lanes.length };
   }
 
   // small empty pages; ghosts (second row) = screens in other groups
-  const NW = 46; const NH = 62; const GX = 54; const SW = 28; const SH = 38; const ROW2 = 54;
+  const NW = 44; const NH = 58; const STEP = 66; const SW = 24; const SH = 33;
+  const LABEL = 16; const LANE = 9; const ROW2 = 40;
 
   function svg(tag, attrs, parent) {
     const e = document.createElementNS(SVGNS, tag);
@@ -106,50 +122,58 @@
     if (parent) parent.appendChild(e);
     return e;
   }
+  // orthogonal path through points with rounded corners (like the LOCO letter strokes)
+  function ortho(pts, r = 7) {
+    let d = `M${pts[0][0]} ${pts[0][1]}`;
+    for (let i = 1; i < pts.length - 1; i += 1) {
+      const [x0, y0] = pts[i - 1]; const [x1, y1] = pts[i]; const [x2, y2] = pts[i + 1];
+      const r1 = Math.min(r, Math.hypot(x1 - x0, y1 - y0) / 2, Math.hypot(x2 - x1, y2 - y1) / 2);
+      const ax = x1 - Math.sign(x1 - x0) * r1; const ay = y1 - Math.sign(y1 - y0) * r1;
+      const bx = x1 + Math.sign(x2 - x1) * r1; const by = y1 + Math.sign(y2 - y1) * r1;
+      d += ` L${ax} ${ay} Q${x1} ${y1} ${bx} ${by}`;
+    }
+    const [lx, ly] = pts[pts.length - 1];
+    return `${d} L${lx} ${ly}`;
+  }
 
   function buildMap(g, screens, L) {
-    const step = NW + GX;
-    const arcH = (d) => Math.min(14 + d * 12, 84);
-    const maxDist = Math.max(1, ...L.edges.map(([a, b]) => Math.abs(L.pos[a][0] - L.pos[b][0])));
-    const TOP = L.edges.some(([a, b]) => Math.abs(L.pos[a][0] - L.pos[b][0]) > 1 || L.pos[b][0] < L.pos[a][0]) ? arcH(maxDist) + 8 : 6;
-    const W = (L.cols - 1) * step + NW + 24;
-    const H = TOP + NH + (L.twoRows ? ROW2 + SH + 20 : 22);
+    const TOP = LABEL + (L.laneCount ? L.laneCount * LANE + 6 : 2);
+    const W = (L.cols - 1) * STEP + NW + 8;
+    const rowY2 = TOP + NH + ROW2;
+    const H = (L.twoRows ? rowY2 + SH + LABEL + 2 : TOP + NH + 6);
     const box = document.createElement('div');
     box.className = 'map';
-    const s = svg('svg', { viewBox: `-12 0 ${W} ${H}`, width: W, height: H, role: 'group', 'aria-label': `Screen map: ${g.name}` }, box);
+    const s = svg('svg', { viewBox: `-4 0 ${W} ${H}`, width: W, height: H, role: 'group', 'aria-label': `Screen map: ${g.name}` }, box);
     const defs = svg('defs', {}, s);
     ['a', 'b'].forEach((m) => {
-      const mk = svg('marker', { id: `ar-${g.id}-${m}`, viewBox: '0 0 6 6', refX: 5, refY: 3, markerWidth: 5, markerHeight: 5, orient: 'auto' }, defs);
-      svg('path', { d: 'M0 0.5 L5 3 L0 5.5', class: m === 'a' ? 'mk' : 'mk on' }, mk);
+      const mk = svg('marker', { id: `ar-${g.id}-${m}`, viewBox: '0 0 6 6', refX: 4.5, refY: 3, markerWidth: 5, markerHeight: 5, orient: 'auto' }, defs);
+      svg('path', { d: 'M0.5 0.8 L4.5 3 L0.5 5.2', class: m === 'a' ? 'mk' : 'mk on' }, mk);
     });
     const xy = (id) => {
       const [c, r] = L.pos[id];
-      const small = r === 1;
-      const w = small ? SW : NW; const h = small ? SH : NH;
-      return { x: c * step + (NW - w) / 2, y: TOP + (r ? NH + ROW2 : 0), w, h };
+      const w = r ? SW : NW; const h = r ? SH : NH;
+      return { x: c * STEP + (NW - w) / 2, y: r ? rowY2 : TOP, w, h };
     };
     const gEdges = svg('g', { class: 'edges' }, s);
     const gNodes = svg('g', { class: 'nodes' }, s);
     const addEdge = (a, b, ext, i) => {
       const A = xy(a); const B = xy(b);
-      let d;
+      let pts;
       if (L.pos[b][1] === 1) { // down to another group
-        const x1 = A.x + A.w + 2; const y1 = A.y + A.h * 0.8; const x2 = B.x + B.w / 2; const y2 = B.y - 4;
-        d = `M${x1} ${y1} C${x1 + 18} ${y1}, ${x2} ${y2 - 30}, ${x2} ${y2}`;
+        const xa = A.x + A.w / 2; const xb = B.x + B.w / 2; const ym = A.y + A.h + ROW2 / 2;
+        pts = xa === xb ? [[xa, A.y + A.h + 2], [xb, B.y - 3]] : [[xa, A.y + A.h + 2], [xa, ym], [xb, ym], [xb, B.y - 3]];
       } else if (L.pos[a][1] === 1) { // up from another group
-        const x1 = A.x + A.w / 2; const y1 = A.y; const x2 = B.x + B.w / 2; const y2 = B.y + B.h + 18;
-        d = `M${x1} ${y1} C${x1} ${y1 - 20}, ${x2} ${y2 + 14}, ${x2} ${y2}`;
-      } else {
-        const dist = L.pos[b][0] - L.pos[a][0];
-        if (dist === 1) { // neighbours: straight thread
-          d = `M${A.x + A.w + 3} ${A.y + A.h / 2} L${B.x - 4} ${B.y + B.h / 2}`;
-        } else { // further away or backwards: light arc over the row
-          const h = arcH(Math.abs(dist)) * (dist < 0 ? 0.7 : 1);
-          const x1 = A.x + A.w * (dist > 0 ? 0.65 : 0.35); const x2 = B.x + B.w * (dist > 0 ? 0.35 : 0.65);
-          d = `M${x1} ${A.y - 2} C${x1} ${A.y - h}, ${x2} ${B.y - h}, ${x2} ${B.y - 4}`;
-        }
+        const xa = A.x + A.w / 2; const xb = B.x + B.w / 2; const ym = B.y + B.h + ROW2 / 2;
+        pts = xa === xb ? [[xa, A.y - 2], [xb, B.y + B.h + 3]] : [[xa, A.y - 2], [xa, ym], [xb, ym], [xb, B.y + B.h + 3]];
+      } else if (L.pos[b][0] - L.pos[a][0] === 1) { // neighbours: straight thread
+        pts = [[A.x + A.w + 2, A.y + A.h / 2], [B.x - 3, B.y + B.h / 2]];
+      } else { // jump over the row in its own lane
+        const fwd = L.pos[b][0] > L.pos[a][0];
+        const ya = TOP - LABEL - 4 - L.lane[`${a}>${b}`] * LANE;
+        const xa = fwd ? A.x + A.w - 5 : A.x + 5; const xb = fwd ? B.x + 5 : B.x + B.w - 5;
+        pts = [[xa, A.y - 2], [xa, ya], [xb, ya], [xb, B.y - 3]];
       }
-      const p = svg('path', { d, class: 'edge' + (ext ? ' ext' : ''), pathLength: 1, 'marker-end': `url(#ar-${g.id}-a)` }, gEdges);
+      const p = svg('path', { d: ortho(pts), class: 'edge' + (ext ? ' ext' : ''), pathLength: 1, 'marker-end': `url(#ar-${g.id}-a)` }, gEdges);
       p.dataset.a = a.replace(/^(in|out):/, ''); p.dataset.b = b.replace(/^(in|out):/, '');
       p.style.setProperty('--i', i);
     };
@@ -159,24 +183,24 @@
     L.exits.forEach(([a, t]) => addEdge(a, 'out:' + t, true, i++));
 
     let n = 0;
-    const node = (id, cls, label, title) => {
+    const node = (id, cls, label, title, below) => {
       const P = xy(id);
       const gg = svg('g', { class: 'node ' + cls, transform: `translate(${P.x} ${P.y})`, tabindex: 0, role: 'button', 'aria-label': title }, gNodes);
       gg.style.setProperty('--i', n++);
       svg('title', {}, gg).textContent = title;
       svg('rect', { class: 'pg', width: P.w, height: P.h, rx: 3 }, gg);
-      const t = svg('text', { x: P.w / 2, y: P.h + 14, 'text-anchor': 'middle' }, gg);
+      const t = svg('text', { x: P.w / 2, y: below ? P.h + 13 : -6, 'text-anchor': 'middle' }, gg);
       t.textContent = label;
       return gg;
     };
     screens.forEach((sc) => {
-      node(sc.id, sc.opt ? 'opt' : '', sc.id, `${sc.id} ${sc.name} · ${sc.h} h`).dataset.id = sc.id;
+      node(sc.id, sc.opt ? 'opt' : '', sc.id, `${sc.id} ${sc.name} · ${sc.h} h`, false).dataset.id = sc.id;
     });
     [...new Set(L.entries.map((e) => e[0]))].forEach((src) => {
-      node('in:' + src, 'ghost', src, `From ${src} ${allPages[src].name}`).dataset.go = src;
+      node('in:' + src, 'ghost', src, `From ${src} ${allPages[src].name}`, true).dataset.go = src;
     });
     [...new Set(L.exits.map((e) => e[1]))].forEach((t) => {
-      node('out:' + t, 'ghost', t, `Go to ${t} ${allPages[t] ? allPages[t].name : ''}`).dataset.go = t;
+      node('out:' + t, 'ghost', t, `Go to ${t} ${allPages[t] ? allPages[t].name : ''}`, true).dataset.go = t;
     });
     return box;
   }
@@ -195,7 +219,7 @@
       sl.dataset.id = sc.id;
       const to = (sc.to || []).map((t) => `<li><button type=button data-go="${t}">${t} ${esc(allPages[t] ? allPages[t].name : '')}</button></li>`).join('');
       const from = sc.from ? `<li><button type=button data-go="${sc.from}">← ${sc.from} ${esc(allPages[sc.from].name)}</button></li>` : '';
-      sl.innerHTML = `<div class="wf big wf-${sc.kind}" aria-hidden=true><i class=topnav></i><div class=wf-body>${WF[sc.kind] || WF.text}</div><i class=foot></i></div>
+      sl.innerHTML = `<div class="wf big wf-${sc.kind}" aria-hidden=true>${WF_NAV}<div class=wf-body>${WF[sc.kind] || WF.text}</div>${WF_FOOT}</div>
         <div class=slide-body>
           <p class=s-top><span class=s-id>${sc.id}</span><span class=s-n>${idx + 1} / ${screens.length}</span><span class=s-h>${sc.h} h · ${money(sc.h * D.rate)}</span></p>
           <h4>${esc(sc.name)}</h4>
