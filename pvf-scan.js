@@ -87,30 +87,34 @@
 
     <section class=fs-sec>
       <h3>How it works</h3>
-      <div class=fs-tabs role=tablist aria-label="Tutorial">
-        <button type=button role=tab aria-selected=true data-tab=flat>Flat works</button>
-        <button type=button role=tab aria-selected=false data-tab=object>Sculpture and objects</button>
-        <button type=button role=tab aria-selected=false data-tab=progress>Progress</button>
+      <div class=fs-fmt>
+        <div class=fs-fmt-h><span class=fs-tag>2D</span><h4>Flat works</h4><p>Paintings, graphics, photographs, textile: one flat, distortion-free image in super resolution.</p></div>
+        <ol class=fs-steps>
+          ${step(1, 'light', 'Light it evenly', 'Two lights at 45° to the work, no direct sun. Put the colour card next to the work in the first frame.')}
+          ${step(2, 'grid', 'Shoot close, in a grid', 'Camera parallel to the work, 10–20 frames in rows with about 60% overlap, every frame in focus. The camera you already have.')}
+          ${step(3, 'upload', 'Upload', 'In the residence: over Wi-Fi straight to the scan server. From home: in My LOCO, into the inbox.')}
+          ${step(4, 'night', 'Processing', `Up to about ${SC.hoursPerWork} hour of computer time per work. The night queue (${esc(SC.nightWindow)}) costs less; instant costs more.`)}
+          ${step(5, 'page', 'On the site', 'Deep zoom on the artwork page, real size in centimetres, previews for cards and the catalogue.')}
+        </ol>
       </div>
-      <ol class=fs-steps data-panel=flat>
-        ${step(1, 'light', 'Light it evenly', 'Two lights at 45° to the work, no direct sun. Put the colour card next to the work in the first frame.')}
-        ${step(2, 'grid', 'Shoot close, in a grid', 'Camera parallel to the work, 10–20 frames in rows with about 60% overlap, every frame in focus. The camera you already have.')}
-        ${step(3, 'upload', 'Upload', 'In the residence: over Wi-Fi straight to the scan server. From home: in My LOCO, into the inbox.')}
-        ${step(4, 'night', 'Processing', `Up to about ${SC.hoursPerWork} hour of computer time per work. The night queue (${esc(SC.nightWindow)}) costs less; instant costs more.`)}
-        ${step(5, 'page', 'On the site', 'The scan appears on the artwork page: deep zoom, real size, previews for cards and the catalogue.')}
-      </ol>
-      <ol class=fs-steps data-panel=object hidden>
-        ${step(1, 'light', 'Soft light all around', 'No hard shadows. Put the object on a turntable or walk around it.')}
-        ${step(2, 'rings', 'Shoot in rings', '60–100 frames in 2–3 rings at different heights, each frame overlapping the next.')}
-        ${step(3, 'upload', 'Upload', 'The same way as flat works: Wi-Fi in the residence or My LOCO from home.')}
-        ${step(4, 'cube', 'Processing', 'The photos become a 3D scene (Gaussian Splatting), and renders are made from it automatically: a turntable and hero angles.')}
-        ${step(5, 'page', 'On the site', 'A 3D view on the artwork page; the renders go to cards and the catalogue.')}
-      </ol>
-      <ol class=fs-steps data-panel=progress hidden>
-        ${step(1, 'layers', 'Scan again', 'At each stage, scan the same work with the same setup.')}
-        ${step(2, 'grid', 'Aligned for you', 'Each new scan is matched to the previous one automatically, so the work does not jump between stages.')}
-        ${step(3, 'slider', 'Timeline', 'A slider on the artwork page shows how the work changed, with the date of every stage.')}
-      </ol>
+      <div class=fs-fmt>
+        <div class=fs-fmt-h><span class=fs-tag>3D</span><h4>Sculpture and objects</h4><p>Anything with volume: a 3D scan you can turn around, and renders made from it.</p></div>
+        <ol class=fs-steps>
+          ${step(1, 'light', 'Soft light all around', 'No hard shadows. Put the object on a turntable or walk around it.')}
+          ${step(2, 'rings', 'Shoot in rings', '60–100 frames in 2–3 rings at different heights, each frame overlapping the next.')}
+          ${step(3, 'upload', 'Upload', 'The same way as flat works: Wi-Fi in the residence or My LOCO from home.')}
+          ${step(4, 'cube', 'Processing', 'The photos become a 3D scene (Gaussian Splatting); renders are made from it automatically: a turntable and hero angles.')}
+          ${step(5, 'page', 'On the site', 'A 3D view on the artwork page; the renders go to cards and the catalogue.')}
+        </ol>
+      </div>
+      <div class=fs-fmt>
+        <div class=fs-fmt-h><span class=fs-tag>2D + 3D</span><h4>Progress over time</h4><p>For both formats: the same work scanned at every stage.</p></div>
+        <ol class="fs-steps fs-steps-3">
+          ${step(1, 'layers', 'Scan again', 'At each stage, scan the same work with the same setup.')}
+          ${step(2, 'grid', 'Aligned for you', 'Each new scan is matched to the previous one automatically, so the work does not jump between stages.')}
+          ${step(3, 'slider', 'Timeline', 'A slider on the artwork page shows how the work changed, with the date of every stage.')}
+        </ol>
+      </div>
     </section>
 
     <section class=fs-sec>
@@ -209,10 +213,6 @@
   // ---------- compare slider and tutorial tabs ----------
   const cmp = el.querySelector('.cmp');
   el.querySelector('.cmp-r').addEventListener('input', (e) => cmp.style.setProperty('--x', `${e.target.value}%`));
-  el.querySelectorAll('[data-tab]').forEach((t) => t.addEventListener('click', () => {
-    el.querySelectorAll('[data-tab]').forEach((b) => b.setAttribute('aria-selected', String(b === t)));
-    el.querySelectorAll('[data-panel]').forEach((p) => { p.hidden = p.dataset.panel !== t.dataset.tab; });
-  }));
 
   // ---------- choices: the same state as the page ----------
   const n = el.querySelector('#fs-n');

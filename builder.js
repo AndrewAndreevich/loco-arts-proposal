@@ -268,12 +268,6 @@
     return box;
   }
 
-  // screens a feature lives on: its own screens and the screens they open from
-  function featurePages(g) {
-    const ids = new Set();
-    g.decisions.filter((d) => d.feature).forEach((d) => d.choices.forEach((c) => (c.pages || []).forEach((p) => { ids.add(p.id); if (p.from) ids.add(p.from); })));
-    return ids;
-  }
   function buildSlider(g, screens) {
     const wrapEl = document.createElement('div');
     wrapEl.className = 'slider';
@@ -300,7 +294,6 @@
           ${sum ? `<p class=s-sum>${esc(sum)}</p>` : ''}
           ${parts.length ? `<ul class=s-parts>${parts.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
           ${sc.opt ? `<p class=tds>${tierDots(sc.opt.tiers)}</p>` : ''}
-          ${featurePages(g).has(sc.id) ? `<button type=button class="feat-b" data-feature=scan>Customize · PVF Scan</button>` : ''}
         </div>`;
       strip.appendChild(sl);
     });

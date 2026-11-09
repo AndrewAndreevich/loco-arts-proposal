@@ -684,7 +684,7 @@ html.feat-open { overflow: hidden; }
 .fs-tabs button[aria-selected=true] { background: var(--gc); border-color: var(--gc); color: #000; }
 .fs-tabs button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
 .fs-steps { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
-.fs-steps[data-panel=progress] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.fs-steps-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .fs-step { position: relative; background: #121212; border-radius: 18px; padding: 16px; }
 .fs-sn { position: absolute; top: 14px; right: 16px; color: var(--gc); font-size: 15px; }
 .fs-ic { display: block; margin-bottom: 12px; fill: none; stroke: var(--gc); stroke-width: 1.5; stroke-linejoin: round; }
@@ -725,10 +725,10 @@ html.feat-open { overflow: hidden; }
 
 @media (max-width: 900px) {
   .fs-why { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .fs-steps, .fs-steps[data-panel=progress] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fs-steps, .fs-steps-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 600px) {
-  .fs-why, .fs-steps, .fs-steps[data-panel=progress], .flows { grid-template-columns: 1fr; }
+  .fs-why, .fs-steps, .fs-steps-3, .flows { grid-template-columns: 1fr; }
   .fb-t { display: none; }
   .fb-tally { gap: 4px 16px; }
   .fb-tally .c-v { font-size: 14px; }
@@ -740,3 +740,8 @@ html.feat-open { overflow: hidden; }
 }
 @media (prefers-reduced-motion: reduce) { .feat { transition: none; transform: none; } }
 .fs-why h4, .fs-step h4 { color: var(--fg); }
+.fs-fmt + .fs-fmt { margin-top: 40px; }
+.fs-fmt-h { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; align-items: baseline; margin-bottom: 16px; }
+.fs-fmt-h h4 { margin: 0; font-size: 24px; color: var(--fg); }
+.fs-fmt-h p { grid-column: 2; margin: 0; color: var(--mute); font-size: 15px; }
+.fs-tag { grid-row: span 2; align-self: start; padding: 6px 12px; border-radius: 999px; background: var(--gc); color: #000; font-size: 16px; }
