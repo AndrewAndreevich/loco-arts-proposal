@@ -74,8 +74,8 @@ window.LOCO_DATA = {
           id: 'scan', feature: 'scan', label: 'How artworks look on the site',
           choices: [
             { id: 'gallery', label: 'Gallery: photos as they are', hours: 2, tiers: ['E'], note: 'LOCO photographs a work and attaches the photos; swipe gallery with a full-screen lightbox' },
-            { id: 'flat', label: 'PVF Scan · Flat', hours: 36, tiers: ['S'], services: ['scanstore', 'scanproc'], note: '10–20 close-up frames stitched into one flat, distortion-free image in super resolution; deep zoom down to the brushstroke, real size in cm', pages: [{ id: 'S02', name: 'Deep-zoom viewer', kind: 'viewer', h: 24, desc: 'Full-screen PVF Scan of the work: deep zoom into the super-resolution image, real size, scale bar; opens from the artwork detail.', from: 'P05' }] },
-            { id: 'object', label: 'PVF Scan · Flat + Object', hours: 84, tiers: ['F'], services: ['scanstore', 'scanproc'], note: 'Everything in Flat, plus 3D scans of sculptures and objects: a 3D view on the artwork page and automatic renders for cards', pages: [{ id: 'S02', name: 'Deep-zoom viewer', kind: 'viewer', h: 24, desc: 'Full-screen PVF Scan of the work: deep zoom into the super-resolution image, real size, scale bar; opens from the artwork detail.', from: 'P05' }, { id: 'F04', name: 'Artwork 3D view', kind: 'viewer', h: 32, desc: '3D scan of a sculpture or object (Gaussian Splatting): orbit, zoom, renders; opens from the artwork detail.', from: 'P05' }] },
+            { id: 'flat', label: 'PVF Scan · Flat', hours: 30, tiers: ['S'], services: ['scanstore', 'scanproc'], note: '10–20 close-up frames stitched into one flat, distortion-free image in super resolution; deep zoom down to the brushstroke, real size in cm', pages: [{ id: 'S02', name: 'Deep-zoom viewer', kind: 'viewer', h: 24, desc: 'Full-screen PVF Scan of the work: deep zoom into the super-resolution image, real size, scale bar; opens from the artwork detail.', from: 'P05' }] },
+            { id: 'object', label: 'PVF Scan · Flat + Object', hours: 78, tiers: ['F'], services: ['scanstore', 'scanproc'], note: 'Everything in Flat, plus 3D scans of sculptures and objects: a 3D view on the artwork page and automatic renders for cards', pages: [{ id: 'S02', name: 'Deep-zoom viewer', kind: 'viewer', h: 24, desc: 'Full-screen PVF Scan of the work: deep zoom into the super-resolution image, real size, scale bar; opens from the artwork detail.', from: 'P05' }, { id: 'F04', name: 'Artwork 3D view', kind: 'viewer', h: 32, desc: '3D scan of a sculpture or object (Gaussian Splatting): orbit, zoom, renders; opens from the artwork detail.', from: 'P05' }] },
           ],
         },
         {
@@ -88,14 +88,14 @@ window.LOCO_DATA = {
         {
           id: 'who', feature: 'scan', dependsOn: 'scan', label: 'Who scans',
           choices: [
-            { id: 'team', label: 'LOCO team', hours: 0, tiers: ['E', 'S', 'F'], note: 'We train 1–2 people from the LOCO team; training is part of the PVF Scan hours' },
-            { id: 'members', label: 'Team + community members', hours: 14, tiers: [], note: 'A membership feature: members scan their own works and upload them from My LOCO, within a monthly quota or at a price per scan' },
+            { id: 'team', label: 'LOCO team', hours: 6, tiers: ['E', 'S', 'F'], note: 'We train 1–2 people from the LOCO team: preparing the session, a full run-through on their works, a demo of the result on the site' },
+            { id: 'members', label: 'Team + community members', hours: 20, tiers: [], note: 'The team training, plus a membership feature: members scan their own works and upload them from My LOCO, within a monthly quota or at a price per scan' },
           ],
         },
         {
           id: 'proc', feature: 'scan', dependsOn: 'scan', label: 'Processing and storage',
           choices: [
-            { id: 'cloud', label: 'Cloud', hours: 0, tiers: ['E', 'S', 'F'], services: ['scansrc'], note: 'Sources, processing and results in the cloud; pay per processed work' },
+            { id: 'cloud', label: 'Cloud', hours: 6, tiers: ['E', 'S', 'F'], services: ['scansrc'], note: 'Storage buckets, the processing queue, the CDN and private links set up in the cloud; pay per processed work' },
             { id: 'hybrid', label: 'Hybrid: PC + NAS in the residence, results in the cloud', hours: 40, tiers: [], oneTime: true, services: ['scanbackup'], note: 'Sources and processing stay in the residence; only the results go to the cloud for the site and members' },
           ],
         },
