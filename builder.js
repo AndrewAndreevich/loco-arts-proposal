@@ -107,26 +107,28 @@
     [...new Set(exits.map((e) => e[1]))].forEach((t) => ghost('out:' + t, pos[exits.find((e) => e[1] === t)[0]][0]));
     const cols = Math.max(...Object.values(pos).map((p) => p[0])) + 1;
     const twoRows = entries.length + exits.length > 0;
-    // threads that jump over the row: all jumps from one screen in one direction share a lane,
-    // so they read as one trunk with branches down to each target
+    // transitions that jump over the row: screens linked to each other share ONE line above the row,
+    // and every screen has a single stub up to it (as drawn: one path, branches to each card)
     const jumps = edges.filter(([a, b]) => pos[b][0] - pos[a][0] !== 1);
-    const bundles = {};
+    const parent = {};
+    const find = (x) => (parent[x] === x ? x : (parent[x] = find(parent[x])));
+    jumps.forEach(([a, b]) => { parent[a] = parent[a] || a; parent[b] = parent[b] || b; parent[find(a)] = find(b); });
+    const compMap = {};
     jumps.forEach(([a, b]) => {
-      const k = `${a}|${pos[b][0] > pos[a][0] ? 'f' : 'b'}`;
-      const bd = bundles[k] || (bundles[k] = { lo: pos[a][0], hi: pos[a][0], edges: [] });
-      bd.lo = Math.min(bd.lo, pos[b][0]); bd.hi = Math.max(bd.hi, pos[b][0]); bd.edges.push(`${a}>${b}`);
+      const r = find(a);
+      const c = compMap[r] || (compMap[r] = { nodes: new Set(), edges: [], lo: Infinity, hi: -Infinity });
+      [a, b].forEach((n) => { c.nodes.add(n); c.lo = Math.min(c.lo, pos[n][0]); c.hi = Math.max(c.hi, pos[n][0]); });
+      c.edges.push([a, b]);
     });
+    const comps = Object.values(compMap);
     const lanes = [];
-    Object.values(bundles).sort((x, y) => (x.hi - x.lo) - (y.hi - y.lo)).forEach((bd) => {
+    comps.sort((x, y) => (x.hi - x.lo) - (y.hi - y.lo)).forEach((c) => {
       let l = 0;
-      while (lanes[l] && lanes[l].some((o) => !(bd.hi < o.lo || bd.lo > o.hi))) l += 1;
-      (lanes[l] = lanes[l] || []).push(bd);
-      bd.lane = l;
+      while (lanes[l] && lanes[l].some((o) => !(c.hi < o.lo || c.lo > o.hi))) l += 1;
+      (lanes[l] = lanes[l] || []).push(c);
+      c.lane = l;
     });
-    const lane = {};
-    const jumpOut = new Set(jumps.map(([a]) => a)); const jumpIn = new Set(jumps.map(([, b]) => b));
-    Object.values(bundles).forEach((bd) => bd.edges.forEach((e) => { lane[e] = bd.lane; }));
-    return { edges, exits, entries, pos, cols, twoRows, lane, laneCount: lanes.length, jumpOut, jumpIn };
+    return { edges, exits, entries, pos, cols, twoRows, comps, laneCount: lanes.length };
   }
 
   // small empty pages; ghosts (second row) = screens in other groups
@@ -173,33 +175,51 @@
     };
     const gEdges = svg('g', { class: 'edges' }, s);
     const gNodes = svg('g', { class: 'nodes' }, s);
-    const addEdge = (a, b, ext, i) => {
-      const A = xy(a); const B = xy(b);
-      let pts;
-      if (L.pos[b][1] === 1) { // down to another group
-        const xa = A.x + A.w / 2; const xb = B.x + B.w / 2; const ym = A.y + A.h + ROW2 / 2;
-        pts = xa === xb ? [[xa, A.y + A.h + 2], [xb, B.y - 3]] : [[xa, A.y + A.h + 2], [xa, ym], [xb, ym], [xb, B.y - 3]];
-      } else if (L.pos[a][1] === 1) { // up from another group
-        const xa = A.x + A.w / 2; const xb = B.x + B.w / 2; const ym = B.y + B.h + ROW2 / 2;
-        pts = xa === xb ? [[xa, A.y - 2], [xb, B.y + B.h + 3]] : [[xa, A.y - 2], [xa, ym], [xb, ym], [xb, B.y + B.h + 3]];
-      } else if (L.pos[b][0] - L.pos[a][0] === 1) { // neighbours: straight thread
-        pts = [[A.x + A.w + 2, A.y + A.h / 2], [B.x - 3, B.y + B.h / 2]];
-      } else { // jump over the row in its own lane
-        const ya = TOP - 8 - L.lane[`${a}>${b}`] * LANE;
-        // out of the middle of the top edge, into the middle of the target's top edge;
-        // a screen that both sends and receives jumps splits its centre a little
-        const both = (id) => L.jumpOut.has(id) && L.jumpIn.has(id);
-        const xa = A.x + A.w / 2 - (both(a) ? 5 : 0); const xb = B.x + B.w / 2 + (both(b) ? 5 : 0);
-        pts = [[xa, A.y - 1], [xa, ya], [xb, ya], [xb, B.y - 3]];
-      }
-      const p = svg('path', { d: ortho(pts), class: 'edge' + (ext ? ' ext' : ''), pathLength: 1, 'marker-end': `url(#ar-${g.id}-a)` }, gEdges);
-      p.dataset.a = a.replace(/^(in|out):/, ''); p.dataset.b = b.replace(/^(in|out):/, '');
+    const ek = (a, b) => `${a.replace(/^(in|out):/, '')}>${b.replace(/^(in|out):/, '')}`;
+    const path = (pts, keys, cls, i, arrow) => {
+      const p = svg('path', { d: ortho(pts), class: 'edge' + (cls ? ' ' + cls : ''), pathLength: 1 }, gEdges);
+      if (arrow) p.setAttribute('marker-end', `url(#ar-${g.id}-a)`);
+      p.dataset.e = keys.join(' ');
       p.style.setProperty('--i', i);
     };
     let i = 0;
-    L.entries.forEach(([src, dst]) => addEdge('in:' + src, dst, true, i++));
-    L.edges.forEach(([a, b]) => addEdge(a, b, false, i++));
-    L.exits.forEach(([a, t]) => addEdge(a, 'out:' + t, true, i++));
+    // other groups: one stub down from the screen, branching to each target below
+    L.entries.forEach(([src, dst]) => {
+      const A = xy('in:' + src); const B = xy(dst);
+      const xa = A.x + A.w / 2; const xb = B.x + B.w / 2; const ym = B.y + B.h + ROW2 / 2;
+      path(xa === xb ? [[xa, A.y - 2], [xb, B.y + B.h + 3]] : [[xa, A.y - 2], [xa, ym], [xb, ym], [xb, B.y + B.h + 3]], [ek(src, dst)], 'ext', i++, true);
+    });
+    L.exits.forEach(([src, t]) => {
+      const A = xy(src); const B = xy('out:' + t);
+      const xa = A.x + A.w / 2; const xb = B.x + B.w / 2; const ym = A.y + A.h + ROW2 / 2;
+      path(xa === xb ? [[xa, A.y + A.h + 2], [xb, B.y - 3]] : [[xa, A.y + A.h + 2], [xa, ym], [xb, ym], [xb, B.y - 3]], [ek(src, t)], 'ext', i++, true);
+    });
+    // neighbours: straight thread
+    L.edges.filter(([a, b]) => L.pos[b][0] - L.pos[a][0] === 1).forEach(([a, b]) => {
+      const A = xy(a); const B = xy(b);
+      path([[A.x + A.w + 2, A.y + A.h / 2], [B.x - 3, B.y + B.h / 2]], [ek(a, b)], '', i++, true);
+    });
+    // linked screens: one shared line above the row, one stub per screen, arrow into every target
+    L.comps.forEach((c) => {
+      const y = TOP - 8 - c.lane * LANE;
+      const keys = c.edges.map(([a, b]) => ek(a, b));
+      const xs = [...c.nodes].map((n) => ({ n, x: xy(n).x + NW / 2 })).sort((u, v) => u.x - v.x);
+      xs.forEach(({ n, x }) => {
+        const touching = c.edges.filter(([a, b]) => a === n || b === n).map(([a, b]) => ek(a, b));
+        const target = c.edges.some(([, b]) => b === n);
+        const top = xy(n).y;
+        if (target) path([[x, y], [x, top - 3]], touching, '', i++, true);
+        else path([[x, top - 1], [x, y]], touching, '', i++, false);
+      });
+      for (let k = 0; k < xs.length - 1; k += 1) {
+        const x0 = xs[k].x; const x1 = xs[k + 1].x;
+        const over = c.edges.filter(([a, b]) => {
+          const lo = Math.min(xy(a).x, xy(b).x) + NW / 2; const hi = Math.max(xy(a).x, xy(b).x) + NW / 2;
+          return lo <= x0 && hi >= x1;
+        }).map(([a, b]) => ek(a, b));
+        path([[x0, y], [x1, y]], over, '', i++, false);
+      }
+    });
 
     let n = 0;
     const node = (id, cls, label, title, below) => {
@@ -309,9 +329,9 @@
   function setActive(api, id) {
     api.sec.querySelectorAll('.node[data-id]').forEach((n) => n.classList.toggle('on', n.dataset.id === id));
     api.sec.querySelectorAll('.edge').forEach((e) => {
-      const hot = e.dataset.a === id || e.dataset.b === id;
+      const hot = (e.dataset.e || '').split(' ').some((k) => k.split('>').includes(id));
       e.classList.toggle('hot', hot);
-      e.setAttribute('marker-end', `url(#ar-${api.sec.id.slice(2)}-${hot ? 'b' : 'a'})`);
+      if (e.hasAttribute('marker-end')) e.setAttribute('marker-end', `url(#ar-${api.sec.id.slice(2)}-${hot ? 'b' : 'a'})`);
       if (hot) e.parentNode.appendChild(e);
     });
     api.sec.querySelectorAll('.slide').forEach((s) => s.classList.toggle('cur', s.dataset.id === id));
@@ -582,7 +602,7 @@
     };
     weeks.forEach((items, i) => {
       const x = i * (CW + GAP);
-      if (i) svg('path', { d: `M${x - GAP + 1} ${CH / 2} L${x - 3} ${CH / 2}`, class: 'edge', 'data-a': `w${i}`, 'data-b': `w${i + 1}` }, gEdges);
+      if (i) svg('path', { d: `M${x - GAP + 1} ${CH / 2} L${x - 3} ${CH / 2}`, class: 'edge', 'data-e': `w${i}>w${i + 1}` }, gEdges);
       const hours = items.reduce((a, it) => a + it.hours, 0);
       cell(`w${i + 1}`, x, CW, `W${i + 1}`, `Week ${i + 1} · ${hours} h`, items, false);
     });
@@ -668,6 +688,35 @@
     setTimeout(() => old.remove(), 400);
   }
 
+  const reportEl = document.getElementById('c-report');
+  const lastGroup = D.groups[D.groups.length - 1].id;
+  function renderReport(hours, lo, hi) {
+    if (!reportEl || !calcBar) return;
+    const open = !!passed[lastGroup];
+    calcBar.classList.toggle('open', open);
+    reportEl.setAttribute('aria-hidden', String(!open));
+    if (!open) return;
+    const dev = hours * D.rate;
+    const g = D.groups.find((x) => x.id === 'delivery');
+    const sup = g.decisions[0].choices.find((c) => c.id === state[key(g, g.decisions[0])]);
+    const build = Math.max(0, hours - sup.hours); // the timeline covers the build; support comes after launch
+    const weeks = build ? planSpan(build) : 0;
+    const perWeek = weeks ? Math.ceil(build / weeks) : 0;
+    const yLo = lo * 12; const yHi = hi * 12;
+    const range = (a, b) => (a === b ? money(a) : `${money(a)}–${money(b)}`);
+    reportEl.innerHTML = `
+      <div class=r-col><p class=r-h>Cost</p>
+        <p class=r-row><span>Design, development and support</span><span>${hours} h × ${money(D.rate)} = <b>${money(dev)}</b></span></p>
+        <p class=r-row><span>Services, monthly</span><span>${range(lo, hi)} / mo</span></p>
+        <p class=r-row><span>Services, first year</span><span>${range(yLo, yHi)}</span></p>
+        <p class="r-row r-tot"><span>Total for the first year</span><span>${range(dev + yLo, dev + yHi)}</span></p></div>
+      <div class=r-col><p class=r-h>Time</p>
+        <p class=r-row><span>Timeline</span><span><b>${weeks} weeks</b></span></p>
+        <p class=r-row><span>Pace</span><span>≈ ${perWeek} h per week</span></p>
+        <p class=r-row><span>Launch</span><span>end of week ${weeks}</span></p>
+        <p class=r-row><span>Support after launch</span><span>${sup.label} · ${sup.hours} h</span></p></div>`;
+  }
+
   function update() {
     let hours = 0;
     const svc = new Set();
@@ -684,7 +733,8 @@
       if (api) {
         api.sec.querySelectorAll('.node.xopt, .slide.xopt').forEach((el) => el.classList.toggle('off', !activePages.has(el.dataset.id)));
         api.sec.querySelectorAll('.edge').forEach((e) => {
-          const optOff = [e.dataset.a, e.dataset.b].some((id) => allPages[id] && pageGroup[id] === g.id && !activePages.has(id));
+          const keys = (e.dataset.e || '').split(' ').filter(Boolean);
+          const optOff = keys.length > 0 && keys.every((k) => k.split('>').some((id) => allPages[id] && pageGroup[id] === g.id && !activePages.has(id)));
           e.classList.toggle('off', optOff);
         });
       }
@@ -692,7 +742,10 @@
         `${gs ? `${gs} ${gs === 1 ? 'screen' : 'screens'} · ` : ''}${gh} h`;
 
       let c = null;
-      if (counted[g.id]) {
+      if (!api) {
+        if (passed[g.id]) c = 'all';
+        else if (counted[g.id] && reached[g.id]) c = new Set();
+      } else if (counted[g.id]) {
         if (reached[g.id] && api) {
           const order = [...api.track.querySelectorAll('.slide')].filter((x) => !x.hidden).map((x) => x.dataset.id);
           // cards you have moved past count; the current card joins once you scroll down past the group
@@ -722,6 +775,7 @@
       rows.push(`<li><span>${esc(v.name)}</span><span>${v.min === v.max ? money(v.min) : `${money(v.min)}–${money(v.max)}`}</span></li>`);
     });
     roll(out.hours, String(hours), hours);
+    renderReport(hours, lo, hi);
     roll(out.monthly, svc.size ? `${money(lo)}–${money(hi)} / mo` : '—', lo);
     if (servicesEl) servicesEl.innerHTML = (rows.join('') || '<li><span>Nothing counted yet: scroll or open screens above</span></li>')
       + (svc.size ? `<li class=tot><span>Total</span><span>${money(lo)}–${money(hi)} / month</span></li>` : '');

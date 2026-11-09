@@ -84,6 +84,8 @@ BUILDER = """
 <div class=calc role=region aria-label="Running tally"><div class=calc-in>
 <span class=c-cell><span class=c-l>Hours</span><span id=c-hours class=c-v aria-live=polite>0</span></span>
 <span class=c-cell><span class=c-l>Services</span><span id=c-monthly class=c-v>—</span></span>
+</div>
+<div id=c-report class=calc-report aria-hidden=true><div class=calc-in-r></div>
 </div></div>
 """
 src = src.replace(strip, "")

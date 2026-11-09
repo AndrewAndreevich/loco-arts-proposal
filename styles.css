@@ -81,7 +81,7 @@ img { max-width: 100%; }
 .meta span:nth-child(3) { color: var(--yellow); }
 
 /* ---------- tier builder ---------- */
-body { padding-bottom: 96px; }
+body { padding-bottom: 340px; }
 .legend { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 28px 0 8px; }
 .legend-dash { color: var(--mute); font-size: 14px; margin-left: 8px; }
 .td { display: inline-block; font-size: 12px; line-height: 1; padding: 5px 9px; border-radius: 999px; color: #000; }
@@ -262,6 +262,20 @@ body { padding-bottom: 96px; }
 @keyframes roll-in { from { transform: translateY(calc(var(--d) * 100%)); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes roll-out { from { transform: none; opacity: 1; } to { transform: translateY(calc(var(--d) * -100%)); opacity: 0; } }
 .c-price .c-v { color: var(--pink); }
+/* after the last group the bar opens into a cost and time report */
+.calc-report {
+  max-width: 1600px; margin: 0 auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 40px;
+  max-height: 0; opacity: 0; overflow: hidden; transition: max-height .5s cubic-bezier(.2, .75, .2, 1), opacity .35s, margin .35s;
+}
+.calc.open .calc-report { max-height: 360px; opacity: 1; margin-top: 14px; }
+.calc-report .calc-in-r { display: none; }
+.r-col { padding-top: 12px; border-top: 1px solid var(--line); }
+.r-h { margin: 0 0 8px; color: var(--yellow); font-size: 14px; }
+.r-row { display: flex; justify-content: space-between; gap: 16px; margin: 0; padding: 5px 0; font-size: 15px; color: #d0d0d0; }
+.r-row span:last-child { text-align: right; color: var(--fg); font-variant-numeric: tabular-nums; }
+.r-row b { font-weight: 400; color: var(--pink); }
+.r-tot { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 9px; }
+.r-tot span:last-child { color: var(--pink); }
 
 /* ---------- sections ---------- */
 section { padding: clamp(80px, 10vw, 140px) 0 0; }
@@ -493,6 +507,9 @@ details.prop > section { padding-top: 8px; padding-bottom: 56px; }
   .calc-in { gap: 6px 18px; }
   .c-v { font-size: 16px; }
   .calc-in { flex-wrap: nowrap; gap: 32px; }
+  .calc-report { grid-template-columns: 1fr; }
+  .calc.open .calc-report { max-height: 420px; }
+  .r-row { font-size: 13px; padding: 3px 0; }
   .tswitch { top: 16px; }
   .logo { width: 140px; }
   .top { justify-content: flex-start; padding-top: 52px; }
