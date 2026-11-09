@@ -287,6 +287,14 @@
           ${c.note ? `<span class=opt-n>${esc(c.note)}</span>` : ''}<span class=tds>${tierDots(c.tiers)}</span></label>`;
       }).join('')}</div>`;
       sec.appendChild(fs);
+      if (api) { // on phones the same fieldset moves into a card at the end of the carousel
+        const card = document.createElement('article');
+        card.className = 'slide dec-card';
+        card.dataset.id = 'dec:' + d.id;
+        card.hidden = true;
+        api.track.appendChild(card);
+        (api.decs = api.decs || []).push({ fs, card });
+      }
     });
     root.appendChild(sec);
     groups.push({ g, api });
@@ -317,15 +325,16 @@
     const cur = api.track.querySelector('.slide.cur');
     if (!cur) return;
     const sb = api.wrapEl.getBoundingClientRect();
-    const wb = cur.querySelector('.wf').getBoundingClientRect();
+    const wb = (cur.querySelector('.wf') || cur.querySelector('legend') || cur).getBoundingClientRect();
     const top = `${wb.top - sb.top + wb.height / 2}px`;
     api.prev.style.top = top; api.next.style.top = top;
     api.prev.style.left = `${wb.left - sb.left + 8}px`;
     api.next.style.left = `${wb.right - sb.left - 8 - (api.next.offsetWidth || 30)}px`;
-    const ids = api.screens.map((x) => x.id);
+    const ids = visibleIds(api);
     api.prev.hidden = ids.indexOf(api.active) === 0;
     api.next.hidden = ids.indexOf(api.active) === ids.length - 1;
   }
+  const visibleIds = (api) => [...api.track.querySelectorAll('.slide')].filter((x) => !x.hidden).map((x) => x.dataset.id);
   function slideTo(api, id, smooth = true) {
     const sl = api.track.querySelector(`.slide[data-id="${id}"]`);
     if (!sl) return;
@@ -347,6 +356,7 @@
         const mid = api.track.scrollLeft + api.track.clientWidth / 2;
         let best = null; let dist = Infinity;
         api.track.querySelectorAll('.slide').forEach((s) => {
+          if (s.hidden) return;
           const d = Math.abs(s.offsetLeft + s.offsetWidth / 2 - mid);
           if (d < dist) { dist = d; best = s.dataset.id; }
         });
@@ -354,7 +364,7 @@
       });
     }, { passive: true });
     const step = (dir) => {
-      const ids = api.screens.map((s) => s.id);
+      const ids = visibleIds(api);
       const i = Math.max(0, Math.min(ids.length - 1, ids.indexOf(api.active) + dir));
       slideTo(api, ids[i]);
     };
@@ -383,6 +393,21 @@
     });
     setActive(api, api.screens[0].id);
   });
+
+  // ---------- phones: options become cards in the carousel ----------
+  const phone = window.matchMedia('(max-width: 720px)');
+  function placeDecs() {
+    groups.forEach(({ api }) => {
+      if (!api || !api.decs) return;
+      api.decs.forEach(({ fs, card }) => {
+        if (phone.matches) { card.appendChild(fs); card.hidden = false; } else { api.sec.appendChild(fs); card.hidden = true; }
+      });
+      if (!visibleIds(api).includes(api.active)) setActive(api, api.screens[0].id);
+      placeArrows(api);
+    });
+  }
+  placeDecs();
+  phone.addEventListener('change', placeDecs);
 
   // ---------- estimate ----------
   const out = Object.fromEntries(['c-tier', 'c-screens', 'c-hours', 'c-price', 'c-weeks', 'c-monthly'].map((i) => [i, document.getElementById(i)]));

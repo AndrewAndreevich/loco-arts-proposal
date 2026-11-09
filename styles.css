@@ -128,10 +128,18 @@ body { padding-bottom: 96px; }
 .track::-webkit-scrollbar { display: none; }
 .track:focus-visible { box-shadow: inset 0 0 0 2px var(--yellow); border-radius: 20px; }
 .slide {
-  flex: 0 0 min(760px, 84%); scroll-snap-align: center; display: grid; grid-template-columns: 1fr 1.1fr; gap: 22px; align-self: flex-start; align-items: start;
+  flex: 0 0 min(760px, 84%); scroll-snap-align: center; display: grid; grid-template-columns: 1fr 1.1fr; gap: 22px;
   padding: 18px; border-radius: 20px; background: #121212; opacity: .5; transition: opacity .35s, background-color .35s;
 }
 .slide.cur { opacity: 1; background: #171717; }
+.slide[hidden] { display: none; }
+/* phones: an option set as a card in the carousel, same height as the screen cards */
+.dec-card { display: flex; flex-direction: column; }
+.dec-card .dec { margin: 0; display: flex; flex-direction: column; flex: 1; }
+.dec-card .dec legend { float: left; width: 100%; margin: 0 0 4px; color: var(--gc); font-size: 22px; line-height: 1.15; }
+.dec-card .dec legend::before { content: "Option"; display: block; color: var(--mute); font-size: 13px; margin-bottom: 6px; }
+.dec-card .opts { clear: both; grid-template-columns: 1fr; gap: 8px; margin-top: 12px; }
+.dec-card .opt { background: #232323; padding: 12px 14px; }
 .slide.opt { outline: 1px dashed #555; outline-offset: -1px; }
 .slide.opt.off .wf { opacity: .4; }
 .s-top { display: flex; gap: 14px; align-items: baseline; margin: 0 0 8px; font-size: 14px; }
