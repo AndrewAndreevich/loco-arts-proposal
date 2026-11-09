@@ -567,41 +567,40 @@
   let lastPlan = null;
   const KICKOFF = 12; // hours of the delivery group spent on kick-off and setup in week 1
 
-  function planPackages() {
+  // Core work first (the Essential level of every decision), then the options above it, then QA and launch.
+  // Support after launch is not in the weeks: it is a pool of hours used over the months after launch.
+  function planPackages(st = state) {
     const G = Object.fromEntries(D.groups.map((g) => [g.id, g]));
-    const pick = (gid, did) => {
-      const g = G[gid]; const d = g.decisions.find((x) => x.id === did);
-      return d.choices.find((c) => c.id === state[key(g, d)]);
-    };
-    const pk = [];
-    const add = (gid, label, hours) => { if (hours > 0) pk.push({ gid, color: G[gid].color, label, hours }); };
-    add('delivery', 'Kick-off, content model, repository, staging, hosting', KICKOFF);
-    const concepts = pick('design', 'concepts'); add('design', `Design: ${concepts.label}`, concepts.hours);
-    add('cms', 'CMS: collections, roles, drafts, versions', G.cms.hours);
-    const lang = pick('lang', 'translation'); add('lang', `EN / GE: ${lang.label}`, lang.hours);
-    ['home', 'artists', 'artworks', 'exhibitions', 'programs', 'calls', 'studios', 'tours', 'about', 'utility', 'membership', 'myloco'].forEach((gid) => {
-      const g = G[gid];
-      const active = new Map(g.pages.map((p) => [p.id, p]));
-      const extra = [];
+    const core = []; const opts = [];
+    const add = (list, gid, label, hours) => { if (hours > 0) list.push({ gid, color: G[gid].color, label, hours, opt: list === opts }); };
+    const isCore = (c) => (c.tiers || []).includes('E');
+    // one group: its own hours and the core choices as one package, every option above the core on its own
+    const group = (gid, coreLabel, base, skip = []) => {
+      const g = G[gid]; let h = base; const pages = new Set(g.pages.map((p) => p.id)); const labels = [];
       g.decisions.forEach((d) => {
-        if (isOff(g, d)) return;
-        const c = d.choices.find((x) => x.id === state[key(g, d)]);
-        (c.pages || []).forEach((p) => active.set(p.id, p));
-        const rest = c.hours - pageHours(c.pages);
-        if (rest > 0) extra.push([c.label, rest]);
+        if (skip.includes(d.id) || isOff(g, d, st)) return;
+        const c = d.choices.find((x) => x.id === st[key(g, d)]);
+        // an option above the core: the core level of that decision stays in the core, the rest is the option
+        const e = d.choices.find(isCore) || d.choices[0];
+        const base = isCore(c) || c.hours < e.hours ? c : e;
+        h += base.hours; (base.pages || []).forEach((p) => pages.add(p.id)); if (base.hours) labels.push(base.label);
+        if (base !== c) add(opts, gid, `${g.name}: ${c.label}`, c.hours - e.hours);
       });
-      const ph = [...active.values()].reduce((a, p) => a + (p.h || 0), 0);
-      add(gid, `${g.name}: ${active.size} ${active.size === 1 ? 'screen' : 'screens'}`, ph);
-      extra.forEach(([label, h]) => add(gid, `${g.name}: ${label}`, h));
-    });
-    const reporting = pick('cms', 'reporting'); add('cms', `CMS: ${reporting.label}`, reporting.hours);
-    const motion = pick('design', 'motion'); add('design', `Motion: ${motion.label}`, motion.hours);
-    G.delivery.decisions.filter((d) => d.id !== 'support' && !isOff(G.delivery, d)).forEach((d) => {
-      const c = d.choices.find((x) => x.id === state[key(G.delivery, d)]);
-      add('delivery', `PVF Scan setup: ${c.label}`, c.hours);
-    });
-    add('delivery', 'QA on real devices, accessibility, performance, SEO, CMS training', G.delivery.hours - KICKOFF);
-    return { pk, support: pick('delivery', 'support') };
+      add(core, gid, coreLabel(pages.size, labels), h);
+    };
+    add(core, 'delivery', 'Kick-off, content model, repository, staging, hosting', KICKOFF);
+    group('design', (n, l) => `Design: ${l.join(', ')}`, 0);
+    group('cms', (n, l) => ['CMS: collections, roles, drafts, versions', ...l].join(', '), G.cms.hours);
+    group('lang', (n, l) => `EN / GE: ${l.join(', ')}`, 0);
+    ['home', 'artists', 'artworks', 'exhibitions', 'programs', 'calls', 'studios', 'tours', 'about', 'utility', 'membership', 'myloco']
+      .forEach((gid) => group(gid, (n) => `${G[gid].name}: ${n} ${n === 1 ? 'screen' : 'screens'}`, G[gid].hours));
+    group('delivery', (n, l) => `PVF Scan setup: ${l.join(', ')}`, 0, ['support']);
+    const pk = [...core, ...opts];
+    add(pk, 'delivery', 'QA on real devices, accessibility, performance, SEO, CMS training', G.delivery.hours - KICKOFF);
+    pk[pk.length - 1].qa = true;
+    const sd = G.delivery.decisions.find((d) => d.id === 'support');
+    const coreH = core.reduce((a, x) => a + x.hours, 0) + (G.delivery.hours - KICKOFF);
+    return { pk, coreH, optH: opts.reduce((a, x) => a + x.hours, 0), support: sd.choices.find((c) => c.id === st[key(G.delivery, sd)]) };
   }
 
   function planWeeks(pk, cap) {
@@ -641,12 +640,16 @@
     const sig = JSON.stringify(state);
     if (sig === planSig) return;
     planSig = sig;
-    const { pk, support } = planPackages();
+    const { pk, support, coreH, optH } = planPackages();
     const total = pk.reduce((a, p) => a + p.hours, 0);
     const span = planSpan(total);
     const cap = Math.ceil(total / span);
     const weeks = planWeeks(pk, cap);
     lastPlan = { weeks, cap, support };
+    const wk = (f) => weeks.map((w, i) => (w.some(f) ? i + 1 : 0)).filter(Boolean);
+    const wr = (a) => (a.length ? (a[0] === a[a.length - 1] ? `week ${a[0]}` : `weeks ${a[0]}–${a[a.length - 1]}`) : '');
+    const coreW = wk((it) => !it.opt && !it.qa); const qaW = wk((it) => it.qa); const optW = wk((it) => it.opt);
+    const months = D.supportMonths || 6;
     planRoot.innerHTML = '';
 
     const sec = document.createElement('section');
@@ -655,11 +658,11 @@
     sec.style.setProperty('--gc', 'var(--yellow)');
     sec.innerHTML = `<p class=kicker>Summary · 3 of 3</p><div class=grp-head><span class=grp-n>W</span><h3>Time, week by week</h3></div>
       <div class=sum-rows>
-        <p class=r-row><span>Timeline</span><span><b>${weeks.length} weeks</b></span></p>
-        <p class=r-row><span>Pace</span><span>≈ ${cap} h of work per week</span></p>
-        <p class=r-row><span>Launch</span><span>end of week ${weeks.length}</span></p>
-        <p class=r-row><span>After launch</span><span>${esc(support.label)} support · ${support.hours} h</span></p></div>
-      <p class=grp-note>Built from the screens and the options selected above. A tier selection keeps its proposal timeline; change an option and the plan rebuilds.</p>`;
+        <p class=r-row><span>1 · Core functionality</span><span><b>${coreH} h</b> · ${wr(coreW)}</span></p>
+        <p class="r-row${optH ? '' : ' none'}"><span>2 · + Options</span><span>${optH ? `<b>+${optH} h</b> · ${wr(optW)}` : 'none: the core set'}</span></p>
+        <p class=r-row><span>Launch</span><span><b>end of week ${weeks.length}</b> · final QA in ${wr(qaW)} · ≈ ${cap} h of work per week</span></p>
+        <p class=r-row><span>3 · + Support after launch</span><span><b>+${support.hours} h</b> · used as needed over ${months} months</span></p></div>
+      <p class=grp-note>The core is the Essential level of every screen and decision; options above it follow, then final QA and launch. Support is a pool of hours for fixes, small changes and questions in the ${months} months after launch. A tier selection keeps its proposal timeline; change an option and the plan rebuilds.</p>`;
 
     // calendar map: one cell per week, a colour bar showing which groups the week works on
     const CW = 52; const CH = 56; const GAP = 14; const SUPW = 64;
@@ -687,10 +690,11 @@
       if (i) svg('path', { d: `M${x - GAP + 1} ${CH / 2} L${x - 3} ${CH / 2}`, class: 'edge', 'data-e': `w${i}>w${i + 1}` }, gEdges);
       const hours = items.reduce((a, it) => a + it.hours, 0);
       cell(`w${i + 1}`, x, CW, `W${i + 1}`, `Week ${i + 1} · ${hours} h`, items, false);
+      if (items.every((it) => it.opt)) gNodes.lastChild.classList.add('optw');
     });
     const sx = weeks.length * (CW + GAP);
     svg('path', { d: `M${sx - GAP + 1} ${CH / 2} L${sx - 3} ${CH / 2}`, class: 'edge ext' }, gEdges);
-    cell('sup', sx, SUPW, `+${support.label.replace(' days', 'd')}`, `After launch: ${support.label} support`, null, true);
+    cell('sup', sx, SUPW, `+${support.hours}h`, `After launch: +${support.hours} h of support over ${months} months`, null, true);
     sec.appendChild(box);
 
     // week cards
@@ -707,18 +711,19 @@
       const sl = document.createElement('article');
       sl.className = 'slide week-card';
       sl.dataset.id = `w${i + 1}`;
-      sl.innerHTML = `<div class=s-head><p class=s-top><span class=s-kind>Week</span><span class=s-id>W${i + 1}</span><span class=s-n>${i + 1} / ${n}</span><span class=s-h>${hours} h</span></p>
+      const kind = items.every((it) => it.opt) ? 'Options' : items.some((it) => it.opt) ? 'Core + options' : 'Core';
+      sl.innerHTML = `<div class=s-head><p class=s-top><span class=s-kind>Week · ${kind}</span><span class=s-id>W${i + 1}</span><span class=s-n>${i + 1} / ${n}</span><span class=s-h>${hours} h</span></p>
         <h4>${last ? 'Final QA and launch' : esc(groupsIn.slice(0, 2).join(' · ') + (groupsIn.length > 2 ? ' +' + (groupsIn.length - 2) : ''))}</h4></div>
-        <ul class=plan-items>${items.map((it) => `<li style="--ic:var(--${it.color})"><span class=pi-l>${esc(it.label)}${it.split ? ' <em>(part)</em>' : ''}</span><span class=pi-h>${it.hours} h</span></li>`).join('')}</ul>
+        <ul class=plan-items>${items.map((it) => `<li style="--ic:var(--${it.color})"${it.opt ? ' class=opt' : ''}><span class=pi-l>${it.opt ? '<b class=pi-o>+ option</b> ' : ''}${esc(it.label)}${it.split ? ' <em>(part)</em>' : ''}</span><span class=pi-h>${it.hours} h</span></li>`).join('')}</ul>
         <div class=plan-bar aria-hidden=true>${items.map((it) => `<i style="flex:${it.hours};background:var(--${it.color})"></i>`).join('')}${hours < cap ? `<i class=free style="flex:${cap - hours}"></i>` : ''}</div>`;
       strip.appendChild(sl);
     });
     const sup = document.createElement('article');
     sup.className = 'slide week-card';
     sup.dataset.id = 'sup';
-    sup.innerHTML = `<div class=s-head><p class=s-top><span class=s-kind>After launch</span><span class=s-n>${n} / ${n}</span><span class=s-h>${support.hours} h</span></p>
-      <h4>${esc(support.label)} support</h4></div>
-      <ul class=plan-items><li style="--ic:var(--lime)"><span class=pi-l>Fixes, small changes and questions from the LOCO team</span><span class=pi-h>${support.hours} h</span></li></ul>`;
+    sup.innerHTML = `<div class=s-head><p class=s-top><span class=s-kind>After launch · ${months} months</span><span class=s-n>${n} / ${n}</span><span class=s-h>+${support.hours} h</span></p>
+      <h4>Support: +${support.hours} h over ${months} months</h4></div>
+      <ul class=plan-items><li style="--ic:var(--lime)"><span class=pi-l>Fixes, small changes and questions from the LOCO team, used as needed until month ${months} after launch</span><span class=pi-h>${support.hours} h</span></li></ul>`;
     strip.appendChild(sup);
     const arrow = (d) => `<svg viewBox="0 0 10 10" width="10" height="10" aria-hidden="true"><path d="${d}"/></svg>`;
     const prev = Object.assign(document.createElement('button'), { type: 'button', className: 'nav prev', innerHTML: arrow('M7 1 L2 5 L7 9 Z') });
@@ -1031,7 +1036,7 @@
   function bundle(st, tier) {
     const saved = { ...state };
     Object.assign(state, st); // the plan reads the global selection
-    const { pk, support } = planPackages();
+    const { pk, support, coreH, optH } = planPackages();
     const build = pk.reduce((a, x) => a + x.hours, 0);
     const span = tier ? tier.weeks : planSpan(build);
     const cap = Math.ceil(build / span);
@@ -1041,7 +1046,7 @@
     let hours = 0; let screens = 0; let once = 0; const svc = new Set();
     all.forEach(({ t }) => { hours += t.h; screens += t.screens; once += t.once; t.svc.forEach((x) => svc.add(x)); });
     const [lo, hi] = svcRange(svc, st);
-    return { st, tier, all, hours, screens, svc, lo, hi, weeks, cap, support, build, once };
+    return { st, tier, all, hours, screens, svc, lo, hi, weeks, cap, support, build, once, coreH, optH };
   }
   const span2 = (a, b) => (a === b ? a : `${a}–${b}`);
 
@@ -1055,7 +1060,7 @@
       [B.tier ? 'Price + first-year services, $' : 'Total for the first year, $', B.tier ? span2(B.tier.price + B.lo * 12, B.tier.price + B.hi * 12) : span2(dev + B.lo * 12, dev + B.hi * 12)],
       ['PVF Scan volume', `${scanCfg.n} works / month, ${scanCfg.mode === 'night' ? 'night queue' : 'instant'} processing`],
       ['Hall scans', `${hallCfg.n} / month`], ['Studio scans', `${studioCfg.n} / month`],
-      ['Timeline, weeks', B.weeks.length], ['Pace, h/week', B.cap], ['Support after launch', `${B.support.label} · ${B.support.hours} h`], []);
+      ['Timeline, weeks', B.weeks.length], ['Pace, h/week', B.cap], ['Core functionality, h', B.coreH], ['Options above the core, h', B.optH], ['Support after launch', `+${B.support.hours} h over ${D.supportMonths || 6} months`], []);
     rows.push(['Groups', '', 'Screens', 'Hours', 'Cost, $', 'Services, $/mo']);
     B.all.forEach(({ g, t }, i) => {
       const [a, b] = svcRange(t.svc);
@@ -1073,10 +1078,10 @@
     rows.push(['Total', '', B.lo, B.hi], []);
     rows.push(['Weeks', 'Work', 'Hours']);
     B.weeks.forEach((w, i) => {
-      w.forEach((it) => rows.push([`W${i + 1}`, it.label + (it.split ? ' (part)' : ''), it.hours]));
+      w.forEach((it) => rows.push([`W${i + 1}`, (it.opt ? '+ option: ' : '') + it.label + (it.split ? ' (part)' : ''), it.hours]));
       rows.push([`W${i + 1} total`, '', w.reduce((a, x) => a + x.hours, 0)]);
     });
-    rows.push(['After launch', `${B.support.label} support`, B.support.hours]);
+    rows.push(['After launch', `Support over ${D.supportMonths || 6} months`, B.support.hours]);
     return rows;
   }
 
@@ -1094,7 +1099,9 @@
       ['Timeline, weeks', ...cols.map((B) => B.weeks.length)],
       ['Pace, h/week', ...cols.map((B) => B.cap)],
       ['Services, $/mo', ...cols.map((B) => span2(B.lo, B.hi))],
-      ['Support after launch', ...cols.map((B) => `${B.support.label} · ${B.support.hours} h`)],
+      ['Core functionality, h', ...cols.map((B) => B.coreH)],
+      ['Options above the core, h', ...cols.map((B) => B.optH)],
+      ['Support after launch', ...cols.map((B) => `+${B.support.hours} h over ${D.supportMonths || 6} months`)],
       [], ['Hours by group', ...head.slice(1)]];
     D.groups.forEach((g, i) => cmp.push([`${String(i + 1).padStart(2, '0')} ${g.name}`, ...cols.map((B) => B.all[i].t.h)]));
     cmp.push(['Total', ...cols.map((B) => B.hours)], [], ['Options', ...head.slice(1)]);

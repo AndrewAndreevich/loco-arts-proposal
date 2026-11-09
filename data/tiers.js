@@ -8,11 +8,12 @@
  *   services– monthly third-party costs the group always needs.
  *   decisions[].choices[] – alternatives; `tiers` lists which tiers use that choice by default
  *             (empty = possible alternative, not part of any tier); `pages` = extra screens it adds.
- * Check: Essential 400 h / 49 screens, Signature 600 h / 51, Flagship 800 h / 54.
+ * Check: Essential 400 h, Signature 636 h, Flagship 884 h.
  */
 window.LOCO_DATA = {
   rate: 30,
   hoursPerWeek: 70,
+  supportMonths: 6, // support after launch: a pool of hours used over these months
   tiers: [
     { id: 'E', name: 'Essential', price: 12000, weeks: 6, color: 'lime' },
     { id: 'S', name: 'Signature', price: 18000, weeks: 8, color: 'sky' },
@@ -340,9 +341,9 @@ decisions: [
         {
           id: 'support', label: 'Support after launch',
           choices: [
-            { id: '30', label: '30 days', hours: 10, tiers: ['E'] },
-            { id: '60', label: '60 days', hours: 30, tiers: ['S'] },
-            { id: '90', label: '90 days', hours: 40, tiers: ['F'] },
+            { id: '30', label: '10 h over 6 months', hours: 10, tiers: ['E'] },
+            { id: '60', label: '30 h over 6 months', hours: 30, tiers: ['S'] },
+            { id: '90', label: '40 h over 6 months', hours: 40, tiers: ['F'] },
           ],
         },
       ],

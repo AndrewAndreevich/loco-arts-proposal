@@ -942,3 +942,7 @@ html.feat-open { overflow: hidden; }
 .cap-bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--gc); border-radius: 999px; }
 .cap.over .cap-bar i { background: var(--orange); }
 .cap.over .cap-t { color: var(--orange); }
+.plan-items li.opt .pi-l { color: #e8e8e8; }
+.pi-o { font-weight: 600; font-size: 12px; letter-spacing: .02em; color: var(--gc); margin-right: 4px; white-space: nowrap; }
+.sum-rows .r-row.none span:last-child { color: var(--muted, #8a8a8a); }
+.plan .map .node.week.optw .pg { stroke-dasharray: 4 3; }
