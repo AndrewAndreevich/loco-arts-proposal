@@ -128,8 +128,8 @@
     if (parent) parent.appendChild(e);
     return e;
   }
-  // orthogonal path through points with rounded corners (like the LOCO letter strokes)
-  function ortho(pts, r = 7) {
+  // orthogonal path through points, square corners
+  function ortho(pts, r = 0) {
     let d = `M${pts[0][0]} ${pts[0][1]}`;
     for (let i = 1; i < pts.length - 1; i += 1) {
       const [x0, y0] = pts[i - 1]; const [x1, y1] = pts[i]; const [x2, y2] = pts[i + 1];
@@ -152,8 +152,8 @@
     const s = svg('svg', { viewBox: `-4 0 ${W} ${H}`, width: W, height: H, role: 'group', 'aria-label': `Screen map: ${g.name}` }, box);
     const defs = svg('defs', {}, s);
     ['a', 'b'].forEach((m) => {
-      const mk = svg('marker', { id: `ar-${g.id}-${m}`, viewBox: '0 0 6 6', refX: 4.5, refY: 3, markerWidth: 5, markerHeight: 5, orient: 'auto' }, defs);
-      svg('path', { d: 'M0.5 0.8 L4.5 3 L0.5 5.2', class: m === 'a' ? 'mk' : 'mk on' }, mk);
+      const mk = svg('marker', { id: `ar-${g.id}-${m}`, viewBox: '0 0 6 6', refX: 5, refY: 3, markerWidth: 5, markerHeight: 5, orient: 'auto', markerUnits: 'userSpaceOnUse' }, defs);
+      svg('path', { d: 'M0 0 L6 3 L0 6 Z', class: m === 'a' ? 'mk' : 'mk on' }, mk);
     });
     const xy = (id) => {
       const [c, r] = L.pos[id];
@@ -235,8 +235,9 @@
         </div>`;
       track.appendChild(sl);
     });
-    const prev = Object.assign(document.createElement('button'), { type: 'button', className: 'nav prev', innerHTML: '←' });
-    const next = Object.assign(document.createElement('button'), { type: 'button', className: 'nav next', innerHTML: '→' });
+    const arrow = (d) => `<svg viewBox="0 0 10 10" width="10" height="10" aria-hidden="true"><path d="${d}"/></svg>`;
+    const prev = Object.assign(document.createElement('button'), { type: 'button', className: 'nav prev', innerHTML: arrow('M7 1 L2 5 L7 9 Z') });
+    const next = Object.assign(document.createElement('button'), { type: 'button', className: 'nav next', innerHTML: arrow('M3 1 L8 5 L3 9 Z') });
     prev.setAttribute('aria-label', 'Previous screen');
     next.setAttribute('aria-label', 'Next screen');
     wrapEl.append(track, prev, next);
@@ -289,6 +290,7 @@
     });
     api.sec.querySelectorAll('.slide').forEach((s) => s.classList.toggle('cur', s.dataset.id === id));
     api.active = id;
+    placeArrows(api);
     // keep the active page in view when the map is wider than the screen
     const box = api.sec.querySelector('.map');
     const node = api.sec.querySelector(`.node[data-id="${id}"]`);
@@ -296,6 +298,20 @@
       const nb = node.getBoundingClientRect(); const bb = box.getBoundingClientRect();
       box.scrollTo({ left: box.scrollLeft + nb.left - bb.left - (bb.width - nb.width) / 2, behavior: reduce ? 'auto' : 'smooth' });
     }
+  }
+  // small translucent arrows sit on the left and right edge of the current preview
+  function placeArrows(api) {
+    const cur = api.track.querySelector('.slide.cur');
+    if (!cur) return;
+    const sb = api.wrapEl.getBoundingClientRect();
+    const wb = cur.querySelector('.wf').getBoundingClientRect();
+    const top = `${wb.top - sb.top + wb.height / 2}px`;
+    api.prev.style.top = top; api.next.style.top = top;
+    api.prev.style.left = `${wb.left - sb.left + 8}px`;
+    api.next.style.left = `${wb.right - sb.left - 8 - (api.next.offsetWidth || 30)}px`;
+    const ids = api.screens.map((x) => x.id);
+    api.prev.hidden = ids.indexOf(api.active) === 0;
+    api.next.hidden = ids.indexOf(api.active) === ids.length - 1;
   }
   function slideTo(api, id, smooth = true) {
     const sl = api.track.querySelector(`.slide[data-id="${id}"]`);
@@ -321,7 +337,7 @@
           const d = Math.abs(s.offsetLeft + s.offsetWidth / 2 - mid);
           if (d < dist) { dist = d; best = s.dataset.id; }
         });
-        if (best && best !== api.active) setActive(api, best);
+        if (best && best !== api.active) setActive(api, best); else placeArrows(api);
       });
     }, { passive: true });
     const step = (dir) => {
@@ -329,6 +345,14 @@
       const i = Math.max(0, Math.min(ids.length - 1, ids.indexOf(api.active) + dir));
       slideTo(api, ids[i]);
     };
+    // swipe fallback for browsers that do not scroll the strip natively
+    let sx = 0; let sy = 0; let sl = 0;
+    api.track.addEventListener('touchstart', (e) => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; sl = api.track.scrollLeft; }, { passive: true });
+    api.track.addEventListener('touchend', (e) => {
+      const dx = e.changedTouches[0].clientX - sx; const dy = e.changedTouches[0].clientY - sy;
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) && Math.abs(api.track.scrollLeft - sl) < 5) step(dx < 0 ? 1 : -1);
+    }, { passive: true });
+    window.addEventListener('resize', () => placeArrows(api));
     api.prev.addEventListener('click', () => step(-1));
     api.next.addEventListener('click', () => step(1));
     api.sec.addEventListener('click', (e) => {

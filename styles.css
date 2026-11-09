@@ -112,12 +112,12 @@ body { padding-bottom: 96px; }
 .map .node.ghost .pg { fill: transparent; stroke: rgba(255, 255, 255, .2); stroke-dasharray: 2 2; }
 .map .node.ghost text { fill: #6f6f6f; font-size: 10px; }
 .map .node.ghost:hover .pg { stroke: rgba(255, 255, 255, .6); }
-.map .edge { fill: none; stroke: #4a4a4a; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; transition: stroke .35s, stroke-width .35s, opacity .35s; }
+.map .edge { fill: none; stroke: #4a4a4a; stroke-width: 1.2; stroke-linecap: butt; stroke-linejoin: miter; transition: stroke .35s, stroke-width .35s, opacity .35s; }
 .map .edge.ext { stroke: #333; }
 .map .edge.hot { stroke: var(--gc); stroke-width: 1.8; }
 .map .edge.off { opacity: .35; }
-.map .mk { fill: none; stroke: rgba(255, 255, 255, .4); stroke-width: 1; stroke-linecap: round; stroke-linejoin: round; }
-.map .mk.on { stroke: var(--gc); }
+.map .mk { fill: #5a5a5a; stroke: none; }
+.map .mk.on { fill: var(--gc); }
 
 /* slider: one slide per screen, synced with the map */
 .slider { position: relative; margin-top: 18px; }
@@ -148,12 +148,16 @@ body { padding-bottom: 96px; }
 }
 .s-links button:hover { background: var(--gc); color: #000; }
 .slider .nav {
-  position: absolute; top: 130px; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%;
-  border: 0; background: rgba(38, 38, 38, .92); color: #fff; font: 400 18px/1 var(--font); cursor: pointer; z-index: 2;
+  position: absolute; top: 40%; transform: translateY(-50%); z-index: 2; width: 30px; height: 30px; padding: 0;
+  display: grid; place-items: center; border-radius: 50%; cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, .16); background: rgba(0, 0, 0, .42);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  transition: background-color .25s, opacity .25s;
 }
-.slider .nav:hover { background: var(--gc); color: #000; }
-.slider .prev { left: -6px; }
-.slider .next { right: -6px; }
+.slider .nav svg { fill: rgba(255, 255, 255, .85); }
+.slider .nav:hover { background: var(--gc); }
+.slider .nav:hover svg { fill: #000; }
+.slider .nav[hidden] { display: none; }
 
 /* nodes appear one by one, lines draw in (only with JS and motion allowed) */
 .js .grp .map .node { opacity: 0; transform-box: fill-box; transition: opacity .6s ease; transition-delay: calc(var(--i) * 45ms); }
@@ -416,10 +420,6 @@ footer span:nth-child(2) { color: var(--sky); }
   .grp-meta { grid-column: 1 / -1; }
   .slide { grid-template-columns: 1fr; flex-basis: 86%; gap: 14px; padding: 14px; }
   .slide h4 { font-size: 22px; }
-  .slider { padding-bottom: 54px; }
-  .slider .nav { top: auto; bottom: 0; transform: none; }
-  .slider .prev { left: calc(50% - 52px); }
-  .slider .next { right: calc(50% - 52px); }
   .calc-in { gap: 6px 18px; }
   .c-v { font-size: 16px; }
   .c-cell:nth-child(2), .c-cell:nth-child(5) { display: none; }
