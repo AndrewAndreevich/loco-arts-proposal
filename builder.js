@@ -564,7 +564,7 @@
   // ---------- running tally of hours and services ----------
   // Scrolling past a group adds the whole group. Moving through its carousel instead adds only the
   // screens actually viewed, plus options the visitor picks; such a group is never added in bulk later.
-  const counted = {}; // group id -> true once its carousel was used: count screens up to the current card
+  const counted = {}; // group id -> true once its carousel was used: count the cards moved past
   const picked = new Set(); // decision keys chosen by the visitor
   const gidOf = (api) => api.sec.id.slice(2);
   function seen(api, id) {
@@ -627,9 +627,9 @@
       if (counted[g.id]) {
         if (reached[g.id] && api) {
           const order = [...api.track.querySelectorAll('.slide')].filter((x) => !x.hidden).map((x) => x.dataset.id);
+          // cards you have moved past count; the current card joins once you scroll down past the group
           const upto = order.indexOf(api.active);
-          c = new Set(order.slice(0, upto + 1));
-          if (api.active.startsWith('dec:')) order.forEach((id) => c.add(id));
+          c = new Set(order.slice(0, passed[g.id] ? upto + 1 : upto));
         }
       } else if (passed[g.id]) c = 'all';
       if (c === 'all') {
