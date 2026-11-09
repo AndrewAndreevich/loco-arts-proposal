@@ -96,13 +96,17 @@ body { padding-bottom: 96px; }
 .grp h3 { margin: 0; color: var(--gc); font-size: var(--h); line-height: 1.1; letter-spacing: -.02em; }
 /* the line at the bottom of a group: what the group adds when the bar reaches it */
 .grp-foot {
-  /* same columns, type and spacing as the bar fixed at the bottom, so the two line up exactly */
-  display: flex; gap: 10px 32px; align-items: baseline; flex-wrap: nowrap;
   margin-top: 40px; padding: 10px 0; border-bottom: 1px solid var(--gc); color: var(--mute);
   font-variant-numeric: tabular-nums;
 }
+/* each row: same columns, type and spacing as the bar fixed at the bottom, so they line up exactly */
+.gf-row { display: flex; gap: 10px 32px; align-items: baseline; flex-wrap: nowrap; }
+.gf-row + .gf-row { margin-top: 8px; }
+.gf-tag { margin-left: auto; font-size: 13px; text-align: right; min-width: 0; }
 .grp-foot .c-v { transition: color .3s; }
-.grp-foot.on .c-v { color: var(--gc); }
+.grp-foot.on .gf-base .c-v { color: var(--gc); }
+.grp-foot.on .gf-opt .c-v { color: var(--amber); }
+.grp-foot.on .gf-tag { color: #cfcfcf; }
 
 /* the hours column has one width in the bar and on every group line */
 .calc-in .c-cell:not(:last-child), .grp-foot .c-cell:not(:last-child) { min-width: 92px; }
@@ -557,9 +561,10 @@ details.prop > section { padding-top: 8px; padding-bottom: 56px; }
   .timeline { grid-template-columns: repeat(6, 1fr); }
   .meta, footer { grid-template-columns: 1fr; }
   .grp-head { grid-template-columns: auto 1fr; padding-right: 52px; }
-  .grp-foot { gap: 32px; }
+  .gf-row { flex-wrap: wrap; }
+  .gf-tag { order: -1; flex-basis: 100%; margin: 0 0 2px; text-align: left; }
   .calc-in .c-cell:not(:last-child), .grp-foot .c-cell:not(:last-child) { min-width: 64px; }
-  .grp-foot, .calc-in { gap: 20px !important; }
+  .gf-row, .calc-in { gap: 0 20px !important; }
   .rep-tally .c-cell:not(:last-child) { min-width: 0; }
   .set-sw { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .sb-l { font-size: 16px; }
@@ -786,3 +791,4 @@ html.feat-open { overflow: hidden; }
 .fc-b .fs-total .kicker { display: none; }
 .fc-b > .cta { margin-top: 18px; border: 0; font: inherit; font-size: 18px; cursor: pointer; background: var(--gc); }
 @media (prefers-reduced-motion: reduce) { .fc-track { transition: none; } }
+@media (min-width: 601px) { .gf-base .gf-tag { align-self: flex-end; padding-bottom: 4px; } }

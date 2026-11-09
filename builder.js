@@ -366,7 +366,13 @@
     root.appendChild(sec);
     const foot = document.createElement('div');
     foot.className = 'grp-foot';
-    foot.innerHTML = `<span class=c-cell><span class=c-l>Hours</span><span class="c-v gf-h"></span></span><span class=c-cell><span class=c-l>Screens</span><span class="c-v gf-s"></span></span><span class=c-cell><span class=c-l>Services</span><span class="c-v gf-m"></span></span>`;
+    // two rows: the standard screens of the group, then what the chosen options and customization add
+    const row = (k, labels) => `<div class="gf-row gf-${k}">
+      <span class=c-cell>${labels ? '<span class=c-l>Hours</span>' : ''}<span class="c-v gf-h"></span></span>
+      <span class=c-cell>${labels ? '<span class=c-l>Screens</span>' : ''}<span class="c-v gf-s"></span></span>
+      <span class=c-cell>${labels ? '<span class=c-l>Services</span>' : ''}<span class="c-v gf-m"></span></span>
+      <span class=gf-tag></span></div>`;
+    foot.innerHTML = row('base', true) + (g.decisions.length ? row('opt', false) : '');
     sec.appendChild(foot);
     groups.push({ g, api });
   });
@@ -828,10 +834,21 @@
         });
       }
       const sec = document.getElementById('g-' + g.id);
-      const [slo, shi] = svcRange(t.svc);
-      sec.querySelector('.gf-s').textContent = t.screens ? `+${t.screens}` : '—';
-      sec.querySelector('.gf-h').textContent = `+${t.h} h`;
-      sec.querySelector('.gf-m').textContent = t.svc.size ? `+${range(slo, shi)} / mo` : '—';
+      // standard: the group's own screens and services; options: everything the chosen options add on top
+      const baseSvc = new Set(g.services || []);
+      const optSvcs = new Set([...t.svc].filter((x) => !baseSvc.has(x)));
+      const optH = t.h - g.hours; const optS = t.screens - g.pages.length;
+      const used = t.choices.filter(({ off, c }) => !off && (c.hours > 0 || (c.services || []).length)).map(({ c }) => c.label);
+      const fill = (k, h, n, set, tag) => {
+        const r = sec.querySelector(`.gf-${k}`); if (!r) return;
+        const [a1, b1] = svcRange(set);
+        r.querySelector('.gf-h').textContent = `+${h} h`;
+        r.querySelector('.gf-s').textContent = n ? `+${n}` : '—';
+        r.querySelector('.gf-m').textContent = set.size ? `+${range(a1, b1)} / mo` : '—';
+        r.querySelector('.gf-tag').textContent = tag;
+      };
+      fill('base', g.hours, g.pages.length, baseSvc, g.pages.length ? 'Standard screens' : 'Standard work');
+      fill('opt', optH, optS, optSvcs, used.length ? `Options and customization: ${used.join(' · ')}` : 'Options and customization: none chosen');
       sec.querySelector('.grp-foot').classList.toggle('on', !!passed[g.id]);
       if (passed[g.id]) { hours += t.h; screens += t.screens; t.svc.forEach((x) => svc.add(x)); }
       return { g, t };
