@@ -922,3 +922,4 @@ html.feat-open { overflow: hidden; }
 .otl-r { width: 100%; margin: 10px 0 0; accent-color: var(--pc); }
 @media (max-width: 600px) { .otl-phase { margin-left: 0; } .otl-name { font-size: 13px; } .otl-who { font-size: 19px; } }
 @media (prefers-reduced-motion: reduce) { .otl-img { transition: none; } }
+.otl-phase[hidden] { display: none; }

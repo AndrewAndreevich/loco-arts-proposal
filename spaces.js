@@ -38,13 +38,14 @@
     const t = el.querySelector('.otl'); const r = t.querySelector('.otl-r');
     const set = () => {
       const i = Number(r.value); const p = periods[Math.floor(i / VIEWS)]; const k = i % VIEWS;
-      const phase = p.phases[Math.min(p.phases.length - 1, Math.floor(k * p.phases.length / VIEWS))];
+      const phase = p.phases.length ? p.phases[Math.min(p.phases.length - 1, Math.floor(k * p.phases.length / VIEWS))] : '';
       t.querySelectorAll('.otl-img').forEach((img) => img.classList.toggle('on', img.dataset.p === p.set && Number(img.dataset.k) === k));
       t.querySelector('.otl-scan b').textContent = k + 1;
       t.querySelector('.otl-who').textContent = p.who;
       t.querySelector('.otl-what').textContent = p.what;
       t.querySelector('.otl-dates').textContent = `${p.from} – ${p.to}`;
       t.querySelector('.otl-phase').textContent = phase;
+      t.querySelector('.otl-phase').hidden = !phase;
       t.style.setProperty('--pc', `var(--${p.color})`);
       t.querySelectorAll('.otl-seg').forEach((sg, j) => sg.classList.toggle('on', j === Math.floor(i / VIEWS)));
       t.querySelector('.prev').disabled = i === 0;
@@ -77,9 +78,9 @@
 
   // ---------- Park and halls ----------
   const HALL = [
-    { set: 'a', who: 'Soft Matter', what: 'group show, painting and textile', from: 'Mar 2026', to: 'May 2026', color: 'orange', phases: ['Installation', 'Opening', 'On view', 'On view', 'Last week', 'De-installation'] },
-    { set: 'b', who: 'Open Signal', what: 'photography and light', from: 'Jun 2026', to: 'Aug 2026', color: 'lime', phases: ['Installation', 'Opening', 'On view', 'Artist talk', 'Last week', 'De-installation'] },
-    { set: 'c', who: 'Night Garden', what: 'installation and video', from: 'Sep 2026', to: 'Nov 2026', color: 'sky', phases: ['Installation', 'Opening', 'On view', 'Night programme', 'Last week', 'De-installation'] },
+    { set: 'a', who: 'Soft Matter', what: 'group show, painting and textile', from: 'Mar 2026', to: 'May 2026', color: 'orange', phases: [] },
+    { set: 'b', who: 'Open Signal', what: 'photography and light', from: 'Jun 2026', to: 'Aug 2026', color: 'lime', phases: [] },
+    { set: 'c', who: 'Night Garden', what: 'installation and video', from: 'Sep 2026', to: 'Nov 2026', color: 'sky', phases: [] },
   ];
   K.makeFeature({
     id: 'exhibits',
