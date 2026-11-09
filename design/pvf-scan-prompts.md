@@ -34,3 +34,41 @@ Input image: the reference artwork from prompt 2 (downscaled to 2048 px). Model:
 ```
 A casual photo of this exact painting taken with an ordinary camera by a gallery assistant. The same painting, same shapes and colours, hangs on a white gallery wall in a thin light wooden frame, with some wall visible around it. The camera is handheld, a little to the left of the painting and slightly below its centre, so the painting is seen at an angle: clear perspective, the right edge looks smaller than the left, the frame is not square to the image, slight barrel lens distortion. Light from ceiling spotlights: uneven brightness, a soft glare patch on the upper right of the paint surface, one corner a bit darker. Slightly soft focus, a little camera noise, colours a bit washed out compared to the original, ordinary white balance. A realistic documentation snapshot, not a professional reproduction. No people, no text.
 ```
+
+## 4. Park map from the real satellite photo (Park and halls)
+
+Input: Esri World Imagery around 84 David Guramishvili Avenue, Tbilisi (41.7787, 44.7936; bbox 44.7895–44.7990, 41.7740–41.7815), cropped to the buildings and the green area. Model: Nano Banana Pro, 16:9.
+
+```
+Re-render this exact satellite photo as a premium 3D map visual of an art park, the kind shown in a high-end museum or architecture presentation. Keep every building, roof, path, tree, field and road exactly where it is in the photo, with the same layout and proportions; only make it more beautiful and readable. Seen from above with a gentle oblique tilt and subtle depth, like a crisp 3D scan of the place. Soft golden-hour light with long gentle shadows, clean roofs, rich green trees, tidy paths, slight tilt-shift on the far edges. Add a minimal navigation layer: small round glowing lime-green location pins above the main buildings and at a few spots in the green park, and one thin dotted lime-green walking route that follows the existing paths. The edges of the scan fade softly into a dark background. Elegant, calm, premium. No text, no labels, no logos, no people, no cars.
+```
+
+## 5. A hall from show to show (3 images, the same room)
+
+First image from the prompt; the other two from the first image as input. Model: Nano Banana Pro, 16:9.
+
+```
+A photoreal view of a 3D scan (Gaussian Splatting) of a contemporary art exhibition hall inside a converted Soviet-era industrial building: white walls, polished concrete floor, exposed steel roof beams with track lights. Wide-angle view from the entrance, eye level, the whole room visible. The exhibition: large colourful abstract paintings in vermilion, ochre yellow and ultramarine on the walls, and one soft fabric sculpture on the floor in the middle. Very slightly soft edges like a high-quality 3D scan. No people, no text, no logos.
+```
+
+```
+The same hall, exactly the same room, camera position and lens: same walls, floor, ceiling, steel beams and track lights. Only the exhibition is different: large black-and-white photographs in thin black frames along the walls, and a tall green neon light installation standing in the middle of the floor. Keep the same 3D scan look. No people, no text, no logos.
+```
+
+```
+The same hall, exactly the same room, camera position and lens: same floor, ceiling, steel beams and track lights. Only the exhibition is different: the walls are painted deep night blue, living plants stand in groups on the floor, glowing white spheres hang from the beams, and a video projection of water fills the back wall. Keep the same 3D scan look. No people, no text, no logos.
+```
+
+## 6. A studio from artist to artist (3 images, the same room)
+
+```
+A photoreal view of a 3D scan (Gaussian Splatting) of an empty artist studio in a converted industrial building: whitewashed brick walls, two large steel factory windows with soft daylight, worn concrete floor, a small sink in the corner, nothing else in the room. Wide-angle view from the door, eye level, the whole room visible. Very slightly soft edges like a high-quality 3D scan. No people, no text, no logos.
+```
+
+```
+The same studio, exactly the same room, camera position and lens: same brick walls, windows, floor and sink. Now a painter lives and works here: several easels with large canvases in progress, more canvases leaning against the walls, a long table covered with paint tubes and brushes, paint stains on the floor. Keep the same 3D scan look. No people, no text, no logos.
+```
+
+```
+The same studio, exactly the same room, camera position and lens: same brick walls, windows, floor and sink. Now a sculptor lives and works here: wooden plinths with white plaster and grey clay sculptures, a workbench with tools, sacks of plaster, a thin layer of white dust on the floor. Keep the same 3D scan look. No people, no text, no logos.
+```

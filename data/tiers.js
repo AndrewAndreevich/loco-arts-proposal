@@ -30,10 +30,18 @@ window.LOCO_DATA = {
     scansrc: { name: 'PVF Scan sources in the cloud (Backblaze B2)', min: 5, max: 20 },
     scanbackup: { name: 'Cold backup of scan sources (Backblaze B2)', min: 5, max: 20 },
     scanproc: { name: 'PVF Scan processing', min: 0, max: 0 }, // worked out from the volume and the processing mode
+    hallproc: { name: 'Hall scan processing', min: 0, max: 0 }, // worked out from the volume, like artwork scans
+    studioproc: { name: 'Studio scan processing', min: 0, max: 0 },
+  },
+  features: {
+    scan: { title: 'Artwork viewer · PVF Scan' },
+    exhibits: { title: 'Park and halls · PVF Scan' },
+    studios: { title: 'Studios over time · PVF Scan' },
   },
   // PVF Scan pricing: up to ~1 h of computer time per work, plus our handling (checks, publishing, tiles, previews)
   scan: {
     hoursPerWork: 1, night: 2, instant: 3, handling: 1, perMonth: 20,
+    hoursPerSpace: 3, hallsPerMonth: 2, studiosPerMonth: 2,
     nightWindow: '3:00–9:00',
     pc: 2000, nasGel: 3500, gelPerUsd: 2.7, nasTb: 16,
     resultGb: [0.5, 1], sourceGb: [1, 2],
@@ -85,20 +93,6 @@ window.LOCO_DATA = {
             { id: 'timeline', label: 'Progress timeline', hours: 20, tiers: ['S', 'F'], note: 'The same work scanned again over time; a slider on the artwork page shows how it changed. For flat works and objects' },
           ],
         },
-        {
-          id: 'who', feature: 'scan', dependsOn: 'scan', label: 'Who scans',
-          choices: [
-            { id: 'team', label: 'LOCO team', hours: 6, tiers: ['E', 'S', 'F'], note: 'We train 1–2 people from the LOCO team: preparing the session, a full run-through on their works, a demo of the result on the site' },
-            { id: 'members', label: 'Team + community members', hours: 20, tiers: [], note: 'The team training, plus a membership feature: members scan their own works and upload them from My LOCO, within a monthly quota or at a price per scan' },
-          ],
-        },
-        {
-          id: 'proc', feature: 'scan', dependsOn: 'scan', label: 'Processing and storage',
-          choices: [
-            { id: 'cloud', label: 'Cloud', hours: 6, tiers: ['E', 'S', 'F'], services: ['scansrc'], note: 'Storage buckets, the processing queue, the CDN and private links set up in the cloud; pay per processed work' },
-            { id: 'hybrid', label: 'Hybrid: PC + NAS in the residence, results in the cloud', hours: 40, tiers: [], oneTime: true, services: ['scanbackup'], note: 'Sources and processing stay in the residence; only the results go to the cloud for the site and members' },
-          ],
-        },
       ],
     },
     {
@@ -112,13 +106,13 @@ window.LOCO_DATA = {
       ],
       decisions: [
         {
-          id: 'park', label: 'LOCO Park map',
+          id: 'park', feature: 'exhibits', label: 'Park map: the outdoor territory',
           choices: [
             { id: 'static', label: 'Static masterplan image', hours: 2, tiers: ['E'] },
             { id: '2d', label: 'Interactive 2D masterplan', hours: 42, tiers: ['S'], pages: [{ id: 'S01', name: 'LOCO Park masterplan', kind: 'map', h: 42, desc: 'Interactive 2D LOCO Park masterplan: buildings and art objects linked to exhibitions, works and programs.', from: 'P10' }] },
             {
-              id: '3d', label: '2D masterplan + 3D park (Gaussian Splatting)', hours: 152, tiers: ['F'], services: ['splat'],
-              note: 'Drone and ground capture, processing, web viewer, hotspots, 2D fallback',
+              id: '3d', label: '2D map + 3D scan of the park with navigation', hours: 152, tiers: ['F'], services: ['splat'],
+              note: 'Drone and ground photos become a 3D scan of the park: walk it, routes, works and buildings as points, the 2D map as a fallback',
               pages: [
                 { id: 'S01', name: 'LOCO Park masterplan', kind: 'map', h: 42, desc: 'Interactive 2D LOCO Park masterplan: buildings and art objects linked to exhibitions, works and programs.', from: 'P10' },
                 { id: 'F01', name: 'LOCO Park in 3D', kind: 'viewer', h: 110, desc: 'Photoreal 3D LOCO Park (Gaussian Splatting) from drone and ground capture, with hotspots to works, artists and programs; 2D fallback on low-end devices.', from: 'S01' },
@@ -127,10 +121,17 @@ window.LOCO_DATA = {
           ],
         },
         {
-          id: 'ex3d', label: 'Hall 11 exhibition in 3D',
+          id: 'ex3d', feature: 'exhibits', label: 'Exhibition halls in 3D',
           choices: [
             { id: 'no', label: 'Photo documentation', hours: 2, tiers: ['E', 'S'], note: 'Installation photos on the exhibition page' },
-            { id: 'yes', label: '3D visit of one exhibition', hours: 26, tiers: ['F'], pages: [{ id: 'F02', name: 'Exhibition 3D visit', kind: 'viewer', h: 24, desc: '3D visit of one Hall 11 exhibition, linked from the exhibition page.', from: 'P08' }] },
+            { id: 'yes', label: '3D visit of the current exhibition', hours: 26, tiers: ['F'], services: ['scanstore'], note: 'The hall scanned with the show in it; visitors walk it on the exhibition page', pages: [{ id: 'F02', name: 'Exhibition 3D visit', kind: 'viewer', h: 24, desc: '3D visit of one Hall 11 exhibition, linked from the exhibition page.', from: 'P08' }] },
+          ],
+        },
+        {
+          id: 'hallhist', feature: 'exhibits', dependsOn: 'ex3d', label: 'Halls over time',
+          choices: [
+            { id: 'latest', label: 'The current exhibition only', hours: 0, tiers: ['E', 'S', 'F'], note: 'Nothing extra to build: the hall shows the show that is on now' },
+            { id: 'timeline', label: 'Every exhibition, on a timeline', hours: 24, tiers: [], services: ['scanstore', 'hallproc'], note: 'Each show is scanned before it closes; a slider in the hall moves from exhibition to exhibition, and the archive becomes walkable' },
           ],
         },
         {
@@ -171,7 +172,22 @@ window.LOCO_DATA = {
         { id: 'P23', name: 'Floor plans viewer', kind: 'viewer', h: 4, to: [] },
         { id: 'P24', name: 'Studio application', kind: 'form', h: 6, to: ['P37'] },
       ],
-      decisions: [],
+decisions: [
+        {
+          id: 'studio3d', feature: 'studios', label: 'Studios in 3D',
+          choices: [
+            { id: 'plans', label: 'Floor plans only', hours: 0, tiers: ['E', 'S', 'F'], note: 'Nothing extra to build: the floor plans viewer is already one of the screens' },
+            { id: 'scan', label: '3D scan of every studio', hours: 34, tiers: [], services: ['scanstore', 'studioproc'], note: 'Each studio scanned empty, so applicants can walk it before they apply', pages: [{ id: 'F05', name: 'Studio 3D view', kind: 'viewer', h: 24, desc: 'Walk an empty studio in 3D: size, light, walls, doors; opens from the studio page.', from: 'P22' }] },
+          ],
+        },
+        {
+          id: 'studiohist', feature: 'studios', dependsOn: 'studio3d', label: 'Studios over time',
+          choices: [
+            { id: 'latest', label: 'The empty studio only', hours: 0, tiers: ['E', 'S', 'F'], note: 'Nothing extra to build: one scan per studio' },
+            { id: 'timeline', label: 'From artist to artist, on a timeline', hours: 16, tiers: [], services: ['studioproc'], note: 'The studio is scanned when an artist moves in and when they leave; a slider shows how each resident made it their own' },
+          ],
+        },
+      ],
     },
     {
       id: 'membership', name: 'Membership & payments', color: 'orange', hours: 32,
@@ -306,6 +322,20 @@ window.LOCO_DATA = {
       note: 'Repository, CI, staging, hosting, SEO, analytics, cookie consent, QA, accessibility, documentation, CMS training.',
       pages: [],
       decisions: [
+        {
+          id: 'who', feature: 'shared', dependsOnAny: ['artworks.scan', 'exhibitions.ex3d', 'exhibitions.park=3d', 'studios.studio3d'], label: 'Who scans',
+          choices: [
+            { id: 'team', label: 'LOCO team', hours: 6, tiers: ['E', 'S', 'F'], note: 'We train 1–2 people from the LOCO team: preparing the session, a full run-through on their works, a demo of the result on the site' },
+            { id: 'members', label: 'Team + community members', hours: 20, tiers: [], note: 'The team training, plus a membership feature: members scan their own works and upload them from My LOCO, within a monthly quota or at a price per scan' },
+          ],
+        },
+        {
+          id: 'proc', feature: 'shared', dependsOnAny: ['artworks.scan', 'exhibitions.ex3d', 'exhibitions.park=3d', 'studios.studio3d'], label: 'Processing and storage',
+          choices: [
+            { id: 'cloud', label: 'Cloud', hours: 6, tiers: ['E', 'S', 'F'], services: ['scansrc'], note: 'Storage buckets, the processing queue, the CDN and private links set up in the cloud; pay per processed work' },
+            { id: 'hybrid', label: 'Hybrid: PC + NAS in the residence, results in the cloud', hours: 40, tiers: [], oneTime: true, services: ['scanbackup'], note: 'Sources and processing for every scan (works, park, halls, studios) stay in the residence; only the results go to the cloud for the site and members' },
+          ],
+        },
         {
           id: 'support', label: 'Support after launch',
           choices: [

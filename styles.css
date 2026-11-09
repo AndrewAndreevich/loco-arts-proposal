@@ -853,3 +853,25 @@ html.feat-open { overflow: hidden; }
 .rep-o .rn { width: auto; white-space: nowrap; padding-right: 16px; }
 .rep-eq { margin-top: 32px; max-width: 640px; }
 @media (max-width: 720px) { .rep-o .rn { display: none; } .rep-o th:first-child { display: none; } .rep-o tfoot td:first-child { display: none; } }
+/* spaces: the park map, and a room through time switched by a slider */
+.sp-map { margin: 32px 0 0; display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 20px 28px; align-items: end; }
+.sp-map img { display: block; width: 100%; height: auto; border-radius: 16px; }
+.sp-map figcaption { color: #cfcfcf; font-size: 15px; line-height: 1.5; }
+.sp-map figcaption b { display: block; font-weight: 400; color: var(--fg); font-size: 20px; margin-bottom: 6px; }
+.sp-h { margin: 48px 0 16px !important; font-size: 24px !important; color: var(--fg) !important; }
+.tl { max-width: 1000px; margin-top: 24px; }
+.tl-stage { position: relative; aspect-ratio: 16 / 9; border-radius: 16px; overflow: hidden; background: #1a1a1a; }
+.tl-f { position: absolute; inset: 0; margin: 0; opacity: 0; transition: opacity .5s; }
+.tl-f.on { opacity: 1; }
+.tl-f img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.tl-cap { position: absolute; left: 14px; bottom: 12px; margin: 0; padding: 7px 14px; border-radius: 999px; background: rgba(0, 0, 0, .72); font-size: 14px; }
+.tl-cap b { font-weight: 400; color: var(--gc); margin-right: 8px; }
+.tl-r { width: 100%; margin: 16px 0 6px; accent-color: var(--gc); }
+.tl-ticks { display: flex; justify-content: space-between; font-size: 13px; color: var(--mute); }
+.tl-ticks span.on { color: var(--gc); }
+@media (max-width: 760px) { .sp-map { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .tl-f { transition: none; } }
+/* step numbers stay on one line; on narrow screens they scroll sideways */
+.fc-steps { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.fc-steps::-webkit-scrollbar { display: none; }
+.fc-steps button { flex: none; }

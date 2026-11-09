@@ -22,23 +22,37 @@
   let picked = new Set();
   let pickedCustom = new Set();
   // a picked decision brings the decisions that depend on it (who scans, processing) along as picked
-  const isPicked = (g, d) => picked.has(key(g, d)) || (!!d.dependsOn && picked.has(`${g.id}.${d.dependsOn}`));
+  const isPicked = (g, d) => picked.has(key(g, d)) || (!!d.dependsOn && picked.has(`${g.id}.${d.dependsOn}`))
+    || (d.dependsOnAny || []).some((k) => picked.has(k.split('=')[0]));
   // PVF Scan volume and processing mode, set in the feature presentation
   const SC = D.scan || {};
   const scanCfg = { n: SC.perMonth || 20, mode: 'night' };
+  const hallCfg = { n: SC.hallsPerMonth || 2 }; // halls scanned a month (same processing mode as artworks)
+  const studioCfg = { n: SC.studiosPerMonth || 2 };
   const nasUsd = () => Math.round((SC.nasGel || 0) / (SC.gelPerUsd || 1) / 10) * 10;
   const equipment = () => (SC.pc || 0) + nasUsd();
-  const ownPc = (st) => st['artworks.proc'] === 'hybrid';
+  const ownPc = (st) => st['delivery.proc'] === 'hybrid';
   const perWork = (st = state) => (ownPc(st) ? SC.handling : SC.hoursPerWork * (scanCfg.mode === 'night' ? SC.night : SC.instant) + SC.handling);
   // a service with its price for a given selection (scan processing depends on volume and mode)
+  const perSpace = (st = state) => (ownPc(st) ? SC.handling : SC.hoursPerSpace * (scanCfg.mode === 'night' ? SC.night : SC.instant) + SC.handling);
   function sv(x, st = state) {
+    if (x === 'hallproc' || x === 'studioproc') {
+      const cfg = x === 'hallproc' ? hallCfg : studioCfg; const what = x === 'hallproc' ? 'Hall' : 'Studio';
+      const per = perSpace(st); const v = per * cfg.n;
+      const how = ownPc(st) ? 'own PC in the residence' : scanCfg.mode === 'night' ? `night queue ${SC.nightWindow}` : 'instant';
+      return { name: `${what} scan processing: ${cfg.n} scans / mo × $${per} (${how})`, min: v, max: v };
+    }
     if (x !== 'scanproc') return D.services[x];
     const per = perWork(st); const v = per * scanCfg.n;
     const how = ownPc(st) ? 'own PC in the residence' : scanCfg.mode === 'night' ? `night queue ${SC.nightWindow}` : 'instant';
     return { name: `PVF Scan processing: ${scanCfg.n} works / mo × $${per} (${how})`, min: v, max: v };
   }
   // decisions like "who scans" only count when the decision they depend on is above its first level
+  const firstOf = (k) => { const [gid, did] = k.split('.'); return D.groups.find((x) => x.id === gid).decisions.find((x) => x.id === did).choices[0].id; };
   const isOff = (g, d, st = state) => {
+    if (d.dependsOnAny) {
+      return !d.dependsOnAny.some((k) => { const [dk, want] = k.split('='); return want ? st[dk] === want : st[dk] !== firstOf(dk); });
+    }
     if (!d.dependsOn) return false;
     const base = g.decisions.find((x) => x.id === d.dependsOn);
     return st[`${g.id}.${base.id}`] === base.choices[0].id;
@@ -360,11 +374,12 @@
         (api.decs = api.decs || []).push({ fs, card });
       }
     });
-    if (g.decisions.some((d) => d.feature)) {
+    const fdec = g.decisions.find((d) => d.feature && (D.features || {})[d.feature]);
+    if (fdec) {
       const fr = document.createElement('div');
       fr.className = 'feat-row';
-      fr.innerHTML = `<div class=fr-t><p class=fr-k>Artwork viewer · PVF Scan</p><p class=fr-v></p><p class=fr-n></p></div>
-        <button type=button class=cta data-feature=scan>Customize</button>`;
+      fr.innerHTML = `<div class=fr-t><p class=fr-k>${esc(((D.features || {})[fdec.feature] || {}).title || 'Customize')}</p><p class=fr-v></p><p class=fr-n></p></div>
+        <button type=button class=cta data-feature="${fdec.feature}" data-open="${g.id}.${fdec.id}">Customize</button>`;
       sec.appendChild(fr);
     }
     root.appendChild(sec);
@@ -580,6 +595,10 @@
     });
     const reporting = pick('cms', 'reporting'); add('cms', `CMS: ${reporting.label}`, reporting.hours);
     const motion = pick('design', 'motion'); add('design', `Motion: ${motion.label}`, motion.hours);
+    G.delivery.decisions.filter((d) => d.id !== 'support' && !isOff(G.delivery, d)).forEach((d) => {
+      const c = d.choices.find((x) => x.id === state[key(G.delivery, d)]);
+      add('delivery', `PVF Scan setup: ${c.label}`, c.hours);
+    });
     add('delivery', 'QA on real devices, accessibility, performance, SEO, CMS training', G.delivery.hours - KICKOFF);
     return { pk, support: pick('delivery', 'support') };
   }
@@ -604,7 +623,7 @@
     const pts = D.tiers.map((tt) => {
       const st = defaults(tt.id);
       let h = 0;
-      D.groups.forEach((g) => { h += g.hours; g.decisions.forEach((d) => { if (d.id !== 'support') h += d.choices.find((c) => c.id === st[key(g, d)]).hours; }); });
+      D.groups.forEach((g) => { h += g.hours; g.decisions.forEach((d) => { if (d.id !== 'support' && !isOff(g, d, st)) h += d.choices.find((c) => c.id === st[key(g, d)]).hours; }); });
       return [h, tt.weeks];
     }).sort((a, b) => a[0] - b[0]);
     if (total <= pts[0][0]) return pts[0][1];
@@ -851,7 +870,10 @@
       });
       const fr = document.getElementById('g-' + g.id).querySelector('.feat-row');
       if (fr) {
-        const lv = t.choices.find(({ d }) => d.id === 'scan').c;
+        // the first feature decision of the group always shows; the others when they are above their first level
+        const fc = t.choices.filter(({ d, off }) => d.feature && !off);
+        const shown = fc.filter(({ d, c }, i) => i === 0 || c.id !== d.choices[0].id).map(({ c }) => c.label);
+        const lv = { label: shown.join(' · '), note: fc.length ? fc[0].c.note : '' };
         let fh = 0; const fsv = new Set();
         t.choices.forEach(({ d, c, off }) => { if (!d.feature || off) return; fh += c.hours; (c.services || []).forEach((x) => fsv.add(x)); });
         const [a1, b1] = svcRange(fsv);
@@ -904,13 +926,13 @@
     const badge = document.getElementById('c-set');
     if (badge) { const h = setBadge(); if (badge.innerHTML !== h) badge.innerHTML = h; }
     roll(out.monthly, svc.size ? `${range(lo, hi)} / mo` : '—', lo);
-    const sig = JSON.stringify([state, scanCfg, [...picked]]);
+    const sig = JSON.stringify([state, scanCfg, hallCfg, studioCfg, [...picked]]);
     lastAll = all;
     if (sig !== reportSig) { reportSig = sig; renderReport(all); }
     const t = matchingTier();
     switches.forEach((b) => b.setAttribute('aria-pressed', String(!!t && b.dataset.tier === t.id)));
     renderPlan();
-    if (window.LOCO_FEATURE) window.LOCO_FEATURE.refresh();
+    (window.LOCO_FEATURES || []).forEach((f) => f.refresh());
   }
   function setTier(tid) { Object.assign(state, defaults(tid)); update(); }
 
@@ -1021,6 +1043,7 @@
       ['Services, $/mo', span2(B.lo, B.hi)], ['Services, first year, $', span2(B.lo * 12, B.hi * 12)],
       [B.tier ? 'Price + first-year services, $' : 'Total for the first year, $', B.tier ? span2(B.tier.price + B.lo * 12, B.tier.price + B.hi * 12) : span2(dev + B.lo * 12, dev + B.hi * 12)],
       ['PVF Scan volume', `${scanCfg.n} works / month, ${scanCfg.mode === 'night' ? 'night queue' : 'instant'} processing`],
+      ['Hall scans', `${hallCfg.n} / month`], ['Studio scans', `${studioCfg.n} / month`],
       ['Timeline, weeks', B.weeks.length], ['Pace, h/week', B.cap], ['Support after launch', `${B.support.label} · ${B.support.hours} h`], []);
     rows.push(['Groups', '', 'Screens', 'Hours', 'Cost, $', 'Services, $/mo']);
     B.all.forEach(({ g, t }, i) => {
@@ -1163,7 +1186,7 @@
   D.groups.forEach((g) => g.decisions.forEach((d) => { state[key(g, d)] = d.choices[0].id; }));
   // the feature presentations (pvf-scan.js) use the same state and tally
   window.LOCO_BUILDER = {
-    D, state, scanCfg, key, money, esc, tierDots, optSvc, sv, svcRange, range, perWork, equipment, nasUsd, isOff, groupTotal,
+    D, state, scanCfg, hallCfg, studioCfg, ownPc, key, money, esc, tierDots, optSvc, sv, svcRange, range, perWork, equipment, nasUsd, isOff, groupTotal,
     onPick, refresh: () => { update(); measure(); },
   };
   update();
