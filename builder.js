@@ -231,7 +231,10 @@
     track.className = 'track';
     track.tabIndex = 0;
     track.setAttribute('role', 'region');
-    track.setAttribute('aria-label', `Screens of ${g.name}, scroll sideways`);
+    track.setAttribute('aria-label', `Screens of ${g.name}, swipe sideways`);
+    const strip = document.createElement('div');
+    strip.className = 'strip';
+    track.appendChild(strip);
     screens.forEach((sc, idx) => {
       const sl = document.createElement('article');
       sl.className = 'slide' + (sc.opt ? ' xopt' : '');
@@ -248,7 +251,7 @@
           ${parts.length ? `<ul class=s-parts>${parts.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
           ${sc.opt ? `<p class=tds>${tierDots(sc.opt.tiers)}</p>` : ''}
         </div>`;
-      track.appendChild(sl);
+      strip.appendChild(sl);
     });
     const arrow = (d) => `<svg viewBox="0 0 10 10" width="10" height="10" aria-hidden="true"><path d="${d}"/></svg>`;
     const prev = Object.assign(document.createElement('button'), { type: 'button', className: 'nav prev', innerHTML: arrow('M7 1 L2 5 L7 9 Z') });
@@ -256,7 +259,7 @@
     prev.setAttribute('aria-label', 'Previous screen');
     next.setAttribute('aria-label', 'Next screen');
     wrapEl.append(track, prev, next);
-    return { wrapEl, track, prev, next };
+    return { wrapEl, track, strip, prev, next };
   }
 
   // ---------- render all groups ----------
@@ -294,7 +297,7 @@
         card.className = 'slide dec-card';
         card.dataset.id = 'dec:' + d.id;
         card.hidden = true;
-        api.track.appendChild(card);
+        api.strip.appendChild(card);
         (api.decs = api.decs || []).push({ fs, card });
       }
     });
@@ -324,25 +327,36 @@
   }
   // small translucent arrows sit on the left and right edge of the current preview
   function placeArrows(api) {
-    const cur = api.track.querySelector('.slide.cur');
+    const cur = api.strip.querySelector('.slide.cur');
     if (!cur) return;
     const sb = api.wrapEl.getBoundingClientRect();
-    const cs = cur.getBoundingClientRect();
+    const tr = api.track.getBoundingClientRect();
     const w = api.prev.offsetWidth || 30;
-    const top = `${cs.top - sb.top + cs.height / 2}px`;
+    const cw = cur.offsetWidth;
+    const left = tr.left - sb.left + api.track.clientWidth / 2 - cw / 2;
+    const top = `${tr.top - sb.top + api.strip.offsetTop + api.strip.offsetHeight / 2}px`;
     api.prev.style.top = top; api.next.style.top = top;
-    api.prev.style.left = `${cs.left - sb.left - w - 6}px`;
-    api.next.style.left = `${cs.right - sb.left + 6}px`;
+    api.prev.style.left = `${left - w - 6}px`;
+    api.next.style.left = `${left + cw + 6}px`;
     const ids = visibleIds(api);
     api.prev.hidden = ids.indexOf(api.active) === 0;
     api.next.hidden = ids.indexOf(api.active) === ids.length - 1;
   }
-  const visibleIds = (api) => [...api.track.querySelectorAll('.slide')].filter((x) => !x.hidden).map((x) => x.dataset.id);
+  const visibleIds = (api) => [...api.strip.querySelectorAll('.slide')].filter((x) => !x.hidden).map((x) => x.dataset.id);
+  // the strip moves with a transform, so the card lands exactly in the centre on every device
+  function centreX(api, sl) { return api.track.clientWidth / 2 - (sl.offsetLeft + sl.offsetWidth / 2); }
+  function moveStrip(api, x, animate) {
+    api.x = x;
+    api.strip.style.transition = animate && !reduce ? 'transform .42s cubic-bezier(.2, .75, .2, 1)' : 'none';
+    api.strip.style.transform = `translate3d(${x}px, 0, 0)`;
+  }
   function slideTo(api, id, smooth = true) {
-    const sl = api.track.querySelector(`.slide[data-id="${id}"]`);
-    if (!sl) return;
-    api.track.scrollTo({ left: sl.offsetLeft - (api.track.clientWidth - sl.offsetWidth) / 2, behavior: smooth && !reduce ? 'smooth' : 'auto' });
+    const sl = api.strip.querySelector(`.slide[data-id="${id}"]`);
+    if (!sl || sl.hidden) return;
+    moveStrip(api, centreX(api, sl), smooth);
+    const changed = id !== api.active;
     setActive(api, id);
+    if (changed) seen(api, id);
   }
   function goTo(id) { // a screen in any group
     const gr = groups.find((x) => x.g.id === pageGroup[id]);
@@ -351,25 +365,73 @@
     slideTo(gr.api, id);
   }
   function wire(api) {
-    let raf = 0;
-    api.track.addEventListener('scroll', () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => {
-        const mid = api.track.scrollLeft + api.track.clientWidth / 2;
-        let best = null; let dist = Infinity;
-        api.track.querySelectorAll('.slide').forEach((s) => {
-          if (s.hidden) return;
-          const d = Math.abs(s.offsetLeft + s.offsetWidth / 2 - mid);
-          if (d < dist) { dist = d; best = s.dataset.id; }
-        });
-        if (best && best !== api.active) { setActive(api, best); seen(api, best); } else placeArrows(api);
-      });
-    }, { passive: true });
     const step = (dir) => {
       const ids = visibleIds(api);
       const i = Math.max(0, Math.min(ids.length - 1, ids.indexOf(api.active) + dir));
       slideTo(api, ids[i]);
     };
+    // drag with a finger or the mouse; vertical page scrolling stays with the browser (touch-action: pan-y)
+    let drag = null; let moved = false;
+    api.track.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      if (e.target.closest('button, a')) return;
+      drag = { x0: e.clientX, y0: e.clientY, t0: performance.now(), base: api.x || 0, dir: null, id: e.pointerId, dx: 0 };
+      moved = false;
+    });
+    api.track.addEventListener('pointermove', (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const dx = e.clientX - drag.x0; const dy = e.clientY - drag.y0;
+      if (!drag.dir) {
+        if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+        drag.dir = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+        if (drag.dir === 'x') { try { api.track.setPointerCapture(drag.id); } catch (err) { /* ignore */ } }
+      }
+      if (drag.dir !== 'x') return;
+      moved = true;
+      const ids = visibleIds(api);
+      const first = api.strip.querySelector(`.slide[data-id="${ids[0]}"]`);
+      const last = api.strip.querySelector(`.slide[data-id="${ids[ids.length - 1]}"]`);
+      let x = drag.base + dx;
+      const max = centreX(api, first); const min = centreX(api, last);
+      if (x > max) x = max + (x - max) * 0.3;
+      if (x < min) x = min + (x - min) * 0.3;
+      drag.dx = dx;
+      moveStrip(api, x, false);
+    });
+    const end = (e) => {
+      if (!drag || (e && e.pointerId !== drag.id)) return;
+      if (drag.dir === 'x') {
+        const dt = Math.max(1, performance.now() - drag.t0);
+        const v = drag.dx / dt;
+        const cur = api.strip.querySelector('.slide.cur');
+        const w = cur ? cur.offsetWidth : 300;
+        let dir = 0;
+        if (drag.dx < -w * 0.18 || v < -0.35) dir = 1;
+        else if (drag.dx > w * 0.18 || v > 0.35) dir = -1;
+        if (dir) step(dir); else slideTo(api, api.active);
+      }
+      drag = null;
+    };
+    api.track.addEventListener('pointerup', end);
+    api.track.addEventListener('pointercancel', end);
+    api.track.addEventListener('click', (e) => { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
+    let wheelLock = 0;
+    api.track.addEventListener('wheel', (e) => {
+      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY) || Math.abs(e.deltaX) < 8) return;
+      e.preventDefault();
+      const now = performance.now();
+      if (now < wheelLock) return;
+      wheelLock = now + 450;
+      step(e.deltaX > 0 ? 1 : -1);
+    }, { passive: false });
+    api.track.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
+    });
+    window.addEventListener('resize', () => {
+      const c = api.strip.querySelector(`.slide[data-id="${api.active}"]`);
+      if (c) moveStrip(api, centreX(api, c), false);
+    });
     window.addEventListener('resize', () => placeArrows(api));
     api.prev.addEventListener('click', () => step(-1));
     api.next.addEventListener('click', () => step(1));
@@ -387,6 +449,7 @@
       if (t && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); t.dispatchEvent(new MouseEvent('click', { bubbles: true })); }
     });
     setActive(api, api.screens[0].id);
+    slideTo(api, api.screens[0].id, false);
   }
   groups.forEach(({ api }) => { if (api) wire(api); });
 
@@ -399,6 +462,7 @@
         if (phone.matches) { card.appendChild(fs); card.hidden = false; } else { api.sec.appendChild(fs); card.hidden = true; }
       });
       if (!visibleIds(api).includes(api.active)) setActive(api, api.screens[0].id);
+      slideTo(api, api.active, false);
       placeArrows(api);
     });
   }
@@ -531,7 +595,8 @@
     const wrapEl = document.createElement('div'); wrapEl.className = 'slider';
     const track = document.createElement('div');
     track.className = 'track'; track.tabIndex = 0;
-    track.setAttribute('role', 'region'); track.setAttribute('aria-label', 'Weeks of the work plan, scroll sideways');
+    track.setAttribute('role', 'region'); track.setAttribute('aria-label', 'Weeks of the work plan, swipe sideways');
+    const strip = document.createElement('div'); strip.className = 'strip'; track.appendChild(strip);
     const n = weeks.length + 1;
     weeks.forEach((items, i) => {
       const hours = items.reduce((a, it) => a + it.hours, 0);
@@ -544,7 +609,7 @@
         <h4>${last ? 'Final QA and launch' : esc(groupsIn.slice(0, 2).join(' · ') + (groupsIn.length > 2 ? ' +' + (groupsIn.length - 2) : ''))}</h4></div>
         <ul class=plan-items>${items.map((it) => `<li style="--ic:var(--${it.color})"><span class=pi-l>${esc(it.label)}${it.split ? ' <em>(part)</em>' : ''}</span><span class=pi-h>${it.hours} h</span></li>`).join('')}</ul>
         <div class=plan-bar aria-hidden=true>${items.map((it) => `<i style="flex:${it.hours};background:var(--${it.color})"></i>`).join('')}${hours < cap ? `<i class=free style="flex:${cap - hours}"></i>` : ''}</div>`;
-      track.appendChild(sl);
+      strip.appendChild(sl);
     });
     const sup = document.createElement('article');
     sup.className = 'slide week-card';
@@ -552,7 +617,7 @@
     sup.innerHTML = `<div class=s-head><p class=s-top><span class=s-kind>After launch</span><span class=s-n>${n} / ${n}</span><span class=s-h>${support.hours} h</span></p>
       <h4>${esc(support.label)} support</h4></div>
       <ul class=plan-items><li style="--ic:var(--lime)"><span class=pi-l>Fixes, small changes and questions from the LOCO team</span><span class=pi-h>${support.hours} h</span></li></ul>`;
-    track.appendChild(sup);
+    strip.appendChild(sup);
     const arrow = (d) => `<svg viewBox="0 0 10 10" width="10" height="10" aria-hidden="true"><path d="${d}"/></svg>`;
     const prev = Object.assign(document.createElement('button'), { type: 'button', className: 'nav prev', innerHTML: arrow('M7 1 L2 5 L7 9 Z') });
     const next = Object.assign(document.createElement('button'), { type: 'button', className: 'nav next', innerHTML: arrow('M3 1 L8 5 L3 9 Z') });
@@ -561,7 +626,7 @@
     sec.appendChild(wrapEl);
     planRoot.appendChild(sec);
     const ids = [...weeks.map((_, i) => `w${i + 1}`), 'sup'];
-    wire({ sec, track, prev, next, wrapEl, screens: ids.map((id) => ({ id })) });
+    wire({ sec, track, strip, prev, next, wrapEl, screens: ids.map((id) => ({ id })) });
   }
 
   // ---------- running tally of hours and services ----------

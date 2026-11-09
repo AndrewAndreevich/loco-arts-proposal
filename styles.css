@@ -126,15 +126,15 @@ body { padding-bottom: 96px; }
 .slider { position: relative; margin-top: 18px; }
 .slider { --cw: min(760px, 84vw); }
 .track {
-  position: relative; display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory;
-  /* side padding = half of the free space, so the first and the last card can sit in the centre too */
-  padding: 4px calc((100% - var(--cw)) / 2 + var(--gut)) 14px; margin: 0 calc(-1 * var(--gut));
-  scrollbar-width: none; outline: none;
+  position: relative; overflow: hidden; padding: 4px 0 14px; margin: 0 calc(-1 * var(--gut));
+  touch-action: pan-y; outline: none; cursor: grab; user-select: none; -webkit-user-select: none;
 }
-.track::-webkit-scrollbar { display: none; }
+.track:active { cursor: grabbing; }
+/* the strip is moved with a transform by builder.js; the current card is always centred */
+.strip { display: flex; gap: 14px; align-items: stretch; will-change: transform; }
 .track:focus-visible { box-shadow: inset 0 0 0 2px var(--yellow); border-radius: 20px; }
 .slide {
-  flex: 0 0 var(--cw); scroll-snap-align: center; scroll-snap-stop: always; display: grid; grid-template-columns: 1fr 1.1fr; gap: 22px; align-content: start; align-items: start;
+  flex: 0 0 var(--cw); display: grid; grid-template-columns: 1fr 1.1fr; gap: 22px; align-content: start; align-items: start;
   padding: 18px; border-radius: 20px; background: #121212; opacity: .5; transition: opacity .35s, background-color .35s;
 }
 .slide.cur { opacity: 1; background: #171717; }
