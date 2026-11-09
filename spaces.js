@@ -14,22 +14,46 @@
   const ds = (id) => st.decisions.find((x) => x.id === id);
   const offShared = 'Not needed yet: pick a 3D option in the steps before.';
 
-  // a room through time: generated concept images of one space at three moments, switched by a slider
-  const timeline = (id, stages) => `<div class=tl data-tl-id=${id}>
-      <div class=tl-stage>${stages.map((s, i) => `<figure class="tl-f${i === 0 ? ' on' : ''}" data-i=${i}><img src="${s.img}" alt="${esc(s.alt)}" width=1600 height=900 loading=lazy decoding=async></figure>`).join('')}
-        <p class=tl-cap><b>${esc(stages[0].when)}</b><span>${esc(stages[0].what)}</span></p></div>
-      <input class=tl-r type=range min=0 max=${stages.length - 1} step=1 value=0 aria-label="Move through time">
-      <div class=tl-ticks>${stages.map((s, i) => `<span${i === 0 ? ' class=on' : ''}>${esc(s.when)}</span>`).join('')}</div>
+  // a room through time: each period (an exhibition, an artist's residency) is one 3D scan of the room,
+  // seen from 6 angles; dragging the timeline turns the scan and then moves on to the next period's scan
+  const VIEWS = 6;
+  const timeline = (id, periods) => {
+    const steps = periods.length * VIEWS;
+    return `<div class=otl data-otl=${id}>
+      <div class=otl-view>
+        ${periods.map((p) => Array.from({ length: VIEWS }, (_, k) => `<img class=otl-img data-p=${p.set} data-k=${k} src="assets/spaces/orbit/${id}-${p.set}-${k + 1}.jpg" alt="" width=600 height=512 loading=lazy decoding=async>`).join('')).join('')}
+        <p class=otl-scan>3D scan · view <b>1</b> / ${VIEWS}</p>
+        <button type=button class="otl-nav prev" aria-label="Back in time"><svg viewBox="0 0 10 10" width=10 height=10 aria-hidden=true><path d="M7 1 L2 5 L7 9 Z"/></svg></button>
+        <button type=button class="otl-nav next" aria-label="Forward in time"><svg viewBox="0 0 10 10" width=10 height=10 aria-hidden=true><path d="M3 1 L8 5 L3 9 Z"/></svg></button>
+      </div>
+      <div class=otl-now><b class=otl-who></b><span class=otl-what></span><span class=otl-dates></span><span class=otl-phase></span></div>
+      <div class=otl-bar>
+        <div class=otl-segs>${periods.map((p) => `<div class=otl-seg style="--c:var(--${p.color})"><span class=otl-name>${esc(p.who)}</span><span class=otl-d>${esc(p.from)} – ${esc(p.to)}</span>
+          <span class=otl-phs>${p.phases.map((x) => `<i title="${esc(x)}"></i>`).join('')}</span></div>`).join('')}</div>
+        <input class=otl-r type=range min=0 max=${steps - 1} step=1 value=0 aria-label="Move through time">
+      </div>
     </div>`;
-  const bindTimeline = (el, stages) => {
-    const t = el.querySelector('.tl'); const r = t.querySelector('.tl-r');
-    r.addEventListener('input', () => {
-      const i = Number(r.value);
-      t.querySelectorAll('.tl-f').forEach((f) => f.classList.toggle('on', Number(f.dataset.i) === i));
-      t.querySelector('.tl-cap b').textContent = stages[i].when;
-      t.querySelector('.tl-cap span').textContent = stages[i].what;
-      t.querySelectorAll('.tl-ticks span').forEach((x, j) => x.classList.toggle('on', j === i));
-    });
+  };
+  const bindTimeline = (el, periods) => {
+    const t = el.querySelector('.otl'); const r = t.querySelector('.otl-r');
+    const set = () => {
+      const i = Number(r.value); const p = periods[Math.floor(i / VIEWS)]; const k = i % VIEWS;
+      const phase = p.phases[Math.min(p.phases.length - 1, Math.floor(k * p.phases.length / VIEWS))];
+      t.querySelectorAll('.otl-img').forEach((img) => img.classList.toggle('on', img.dataset.p === p.set && Number(img.dataset.k) === k));
+      t.querySelector('.otl-scan b').textContent = k + 1;
+      t.querySelector('.otl-who').textContent = p.who;
+      t.querySelector('.otl-what').textContent = p.what;
+      t.querySelector('.otl-dates').textContent = `${p.from} – ${p.to}`;
+      t.querySelector('.otl-phase').textContent = phase;
+      t.style.setProperty('--pc', `var(--${p.color})`);
+      t.querySelectorAll('.otl-seg').forEach((sg, j) => sg.classList.toggle('on', j === Math.floor(i / VIEWS)));
+      t.querySelector('.prev').disabled = i === 0;
+      t.querySelector('.next').disabled = i === Number(r.max);
+    };
+    r.addEventListener('input', set);
+    t.querySelector('.prev').addEventListener('click', () => { r.value = Math.max(0, Number(r.value) - 1); set(); });
+    t.querySelector('.next').addEventListener('click', () => { r.value = Math.min(Number(r.max), Number(r.value) + 1); set(); });
+    set();
   };
   const volume = (id, label, max) => `<div class=vol>
       <label class=vol-l for=${id}-n>${label} <output id=${id}-no></output></label>
@@ -53,9 +77,9 @@
 
   // ---------- Park and halls ----------
   const HALL = [
-    { img: 'assets/spaces/halla.jpg', when: 'March', what: 'Exhibition: Soft Matter', alt: 'The hall with large colourful paintings and a soft sculpture' },
-    { img: 'assets/spaces/hallb.jpg', when: 'June', what: 'Exhibition: Open Signal', alt: 'The same hall with black-and-white photographs and a green neon installation' },
-    { img: 'assets/spaces/hallc.jpg', when: 'October', what: 'Exhibition: Night Garden', alt: 'The same hall painted blue, with plants, hanging lights and a projection' },
+    { set: 'a', who: 'Soft Matter', what: 'group show, painting and textile', from: 'Mar 2026', to: 'May 2026', color: 'orange', phases: ['Installation', 'Opening', 'On view', 'On view', 'Last week', 'De-installation'] },
+    { set: 'b', who: 'Open Signal', what: 'photography and light', from: 'Jun 2026', to: 'Aug 2026', color: 'lime', phases: ['Installation', 'Opening', 'On view', 'Artist talk', 'Last week', 'De-installation'] },
+    { set: 'c', who: 'Night Garden', what: 'installation and video', from: 'Sep 2026', to: 'Nov 2026', color: 'sky', phases: ['Installation', 'Opening', 'On view', 'Night programme', 'Last week', 'De-installation'] },
   ];
   K.makeFeature({
     id: 'exhibits',
@@ -69,8 +93,9 @@
         <figure class=sp-map><img src="assets/spaces/park-map.jpg" alt="LOCO Park from above as a 3D map with green location pins and a walking route" width=1024 height=1024 loading=lazy decoding=async>
           <figcaption><b>The park territory</b>Made from a satellite photo of 84 David Guramishvili Avenue: the real buildings, paths and green, with pins on buildings and works and a walking route. On the site this is a 3D scan you can fly through.</figcaption></figure>
         <h3 class=sp-h>A hall, from show to show</h3>
+        <p class=fs-lead>Drag the timeline or use the arrows: the scan of the hall turns, and with the next exhibition the next scan takes its place.</p>
         ${timeline('hall', HALL)}
-        <p class=fs-note>Concept images: on the site each stage is a real 3D scan of the hall that you can walk.</p>
+        <p class=fs-note>Concept images and example exhibitions. On the site each period is a real 3D scan of the hall that you can walk.</p>
       </section>
       <section class=fs-sec>
         <h3>Why it matters</h3>
@@ -119,9 +144,9 @@
 
   // ---------- Studios ----------
   const STUDIO = [
-    { img: 'assets/spaces/studioa.jpg', when: 'Empty', what: 'Studio 4, before a residency', alt: 'An empty studio with brick walls and factory windows' },
-    { img: 'assets/spaces/studiob.jpg', when: '2026–27', what: 'Studio 4: a painter in residence', alt: 'The same studio full of easels, canvases and paint' },
-    { img: 'assets/spaces/studioc.jpg', when: '2027', what: 'Studio 4: a sculptor in residence', alt: 'The same studio with plinths, plaster sculptures and tools' },
+    { set: 'a', who: 'Studio 4, empty', what: 'between residencies', from: 'Jan 2026', to: 'Feb 2026', color: 'mute', phases: ['Scanned empty', 'Open for applications', 'Visits by applicants'] },
+    { set: 'b', who: 'Nino K.', what: 'painter in residence', from: 'Mar 2026', to: 'Aug 2026', color: 'orange', phases: ['Move-in', 'First works', 'Work in progress', 'Preparing the show', 'Open studio', 'Move-out'] },
+    { set: 'c', who: 'Luka B.', what: 'sculptor in residence', from: 'Sep 2026', to: 'Feb 2027', color: 'sky', phases: ['Move-in', 'Casting', 'Work in progress', 'Preparing the show', 'Open studio', 'Move-out'] },
   ];
   K.makeFeature({
     id: 'studios',
@@ -132,8 +157,9 @@
         <p class=kicker>PVF Scan · Studios</p>
         <h2 id=${hid}>Every studio, from artist to artist</h2>
         <p class=big>Each studio scanned empty, so an applicant can walk it before applying, and scanned again when a resident moves in and when they leave. One slider shows how every artist made the same room their own.</p>
+        <p class=fs-lead>Drag the timeline or use the arrows: the scan of the studio turns, and with the next resident the next scan takes its place.</p>
         ${timeline('studio', STUDIO)}
-        <p class=fs-note>Concept images: on the site each stage is a real 3D scan of the studio that you can walk.</p>
+        <p class=fs-note>Concept images and example residents. On the site each period is a real 3D scan of the studio that you can walk.</p>
       </section>
       <section class=fs-sec>
         <h3>Why it matters</h3>

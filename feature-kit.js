@@ -50,7 +50,8 @@
     const cardHtml = (s, i) => `<article class=fc-card data-i=${i} data-step="${esc(s.step)}"${s.dec ? ` data-dec="${s.dec.g.id}.${s.dec.d.id}"` : ''}>
       <p class=fc-k>${esc(s.step)}</p><h4 class=fc-h>${s.title}</h4>${s.desc ? `<p class=fc-d>${s.desc}</p>` : ''}
       ${s.offText ? `<p class=fc-off>${esc(s.offText)}</p>` : ''}
-      <div class=fc-b>${s.dec ? fieldset(s.dec.g, s.dec.d, s.offText, cfg.id) : ''}${s.body || ''}</div></article>`;
+      <div class=fc-b>${s.dec ? fieldset(s.dec.g, s.dec.d, s.offText, cfg.id) : ''}${s.body || ''}</div>
+      ${!s.dec && s.step !== 'Total' ? '<button type=button class="cta fc-next" data-next>Next</button>' : ''}</article>`;
     const steps = [...cfg.steps, { step: 'Total', title: 'Your choice', body: `<div class=fs-total></div><button type=button class=cta data-close>Done, back to the screens</button>` }];
     el.innerHTML = `
     <div class=feat-bar>
@@ -103,10 +104,12 @@
     // after a pick: the next step that applies (steps that depend on a base option are skipped)
     const nextAfter = (i) => { let j = i + 1; while (j < cards.length - 1 && cards[j].classList.contains('na')) j += 1; return j; };
     el.addEventListener('click', (e) => {
+      if (e.target.closest('.fc-card.cur [data-next]')) { go(nextAfter(cur)); showStep(); return; }
       const o = e.target.closest('.fc-card.cur .fo');
       if (!o || e.detail === 0) return;
       const i = cur;
-      setTimeout(() => { if (cur === i) { go(nextAfter(i)); showStep(); } }, 380);
+      o.classList.remove('just'); void o.offsetWidth; o.classList.add('just');
+      setTimeout(() => { if (cur === i) { go(nextAfter(i)); showStep(); } }, reduce ? 300 : 750);
     });
     let drag = null; let moved = false;
     track.addEventListener('pointerdown', (e) => { drag = e.target.closest('input[type=range]') ? null : { x: e.clientX, y: e.clientY }; moved = false; }, true);
