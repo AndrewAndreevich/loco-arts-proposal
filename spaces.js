@@ -65,18 +65,12 @@
   const volume = (id, label, max) => `<div class=vol>
       <label class=vol-l for=${id}-n>${label} <output id=${id}-no></output></label>
       <input id=${id}-n type=range min=0 max=${max} step=1>
-      <div class=vol-m role=radiogroup aria-label="Processing">
-        <label><input type=radio name=${id}mode value=night> Night queue ${esc(SC.nightWindow)}</label>
-        <label><input type=radio name=${id}mode value=instant> Instant</label>
-        <p class=vol-own>Processed on the residence PC: no paid computer time.</p>
-      </div>
     </div>
-    <div class=fs-cost></div>`;
+    <div class=fs-cost></div>
+    <p class=fs-note>How the scans are processed (cloud or a PC in the residence, night queue or instant) and who scans are set once for every scan in <button type=button class=link-b data-feature=shared>Scan setup</button>, in the Delivery group.</p>`;
   const volumeRefresh = (ctx, id, cfg, proc, what) => {
-    const el = ctx.el; const own = K.showFlows(el);
+    const el = ctx.el; const own = B.ownPc(B.state);
     el.querySelector(`#${id}-n`).value = cfg.n; el.querySelector(`#${id}-no`).textContent = cfg.n;
-    el.querySelectorAll(`[name=${id}mode]`).forEach((r) => { r.checked = r.value === scanCfg.mode; r.disabled = own; });
-    el.querySelector('.vol').classList.toggle('own', own);
     const names = [...ctx.svc].map((x) => (x === proc ? `${what} processing: ${cfg.n} scans a month, ${own ? 'on the residence PC' : scanCfg.mode === 'night' ? 'night queue' : 'instant'}` : D.services[x].name));
     el.querySelector('.fs-cost').innerHTML = names.length ? `<p class=r-h>Adds these services</p>${names.map((x) => `<p class=r-row><span>${esc(x)}</span></p>`).join('')}` : '';
   };
@@ -91,7 +85,7 @@
   K.makeFeature({
     id: 'exhibits',
     color: ex.color,
-    decisions: [...ex.decisions.filter((x) => x.feature === 'exhibits').map((x) => ({ g: ex, d: x })), K.shared('who'), K.shared('proc')],
+    decisions: ex.decisions.filter((x) => x.feature === 'exhibits').map((x) => ({ g: ex, d: x })),
     intro: (hid) => `
       <section class=fs-sec>
         <p class=kicker>PVF Scan · Park and halls</p>
@@ -136,11 +130,9 @@
       { step: 'Park', title: 'The park territory', desc: 'A static map, an interactive 2D map, or a 3D scan of the whole territory you can walk with navigation.', dec: { g: ex, d: dx('park') } },
       { step: 'Halls', title: 'Exhibition halls in 3D', desc: 'Installation photos, or the hall scanned with the show in it and walkable on the exhibition page.', dec: { g: ex, d: dx('ex3d') } },
       { step: 'Halls over time', title: 'Halls from show to show', desc: 'Keep only the current show, or scan every exhibition before it closes and move through them on a timeline.', dec: { g: ex, d: dx('hallhist') }, offText: 'Not needed with photo documentation: pick the 3D visit in the step before.' },
-      ...K.sharedSteps(offShared),
       { step: 'Volume', title: 'Volume', desc: 'How many halls are scanned a month. Prices are in the summary at the end.', body: volume('hall', 'Halls scanned per month', 10), offText: 'Nothing is scanned again yet: pick the timeline in the halls step.', na: (ctx) => !ctx.svc.has('hallproc') },
     ],
     totalTitle: labels,
-    onChange: (e) => { if (e.target.name !== 'hallmode') return false; scanCfg.mode = e.target.value; return true; },
     bind: (ctx) => {
       const n = ctx.el.querySelector('#hall-n');
       n.addEventListener('input', () => { hallCfg.n = Number(n.value); B.refresh(); });
@@ -158,7 +150,7 @@
   K.makeFeature({
     id: 'studios',
     color: st.color,
-    decisions: [...st.decisions.filter((x) => x.feature === 'studios').map((x) => ({ g: st, d: x })), K.shared('who'), K.shared('proc')],
+    decisions: st.decisions.filter((x) => x.feature === 'studios').map((x) => ({ g: st, d: x })),
     intro: (hid) => `
       <section class=fs-sec>
         <p class=kicker>PVF Scan · Studios</p>
@@ -193,11 +185,9 @@
     steps: [
       { step: 'Studios', title: 'Artist studios in 3D', desc: 'Floor plans only, or every studio scanned empty so applicants can walk it before they apply.', dec: { g: st, d: ds('studio3d') } },
       { step: 'Over time', title: 'Studios from artist to artist', desc: 'One scan per studio, or a scan when each artist moves in and leaves, on a timeline.', dec: { g: st, d: ds('studiohist') }, offText: 'Not needed with floor plans only: pick the 3D scan in the step before.' },
-      ...K.sharedSteps(offShared),
       { step: 'Volume', title: 'Volume', desc: 'How many studios are scanned a month. Prices are in the summary at the end.', body: volume('studio', 'Studios scanned per month', 10), offText: 'Nothing is scanned yet: pick the 3D scan in the first step.', na: (ctx) => !ctx.svc.has('studioproc') },
     ],
     totalTitle: labels,
-    onChange: (e) => { if (e.target.name !== 'studiomode') return false; scanCfg.mode = e.target.value; return true; },
     bind: (ctx) => {
       const n = ctx.el.querySelector('#studio-n');
       n.addEventListener('input', () => { studioCfg.n = Number(n.value); B.refresh(); });

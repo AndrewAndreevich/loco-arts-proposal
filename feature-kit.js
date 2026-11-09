@@ -141,7 +141,7 @@
         fs.disabled = isOff(g, d);
         fs.querySelectorAll('input').forEach((r) => { r.checked = state[r.name] === r.value; });
       });
-      if (!firstPicked && state[key(first.g, first.d)] === first.d.choices[0].id) el.querySelectorAll(`[data-dec="${first.g.id}.${first.d.id}"] input`).forEach((r) => { r.checked = false; });
+      if (!cfg.keepFirst && !firstPicked && state[key(first.g, first.d)] === first.d.choices[0].id) el.querySelectorAll(`[data-dec="${first.g.id}.${first.d.id}"] input`).forEach((r) => { r.checked = false; });
       let h = 0; const svc = new Set(); const pages = new Set(); let once = 0;
       decs.forEach(({ g, d }) => {
         if (isOff(g, d)) return;
@@ -191,7 +191,11 @@
     }
     document.addEventListener('click', (e) => {
       const b = e.target.closest(`[data-feature="${cfg.id}"]`);
-      if (b && !el.contains(b)) { open(b); return; }
+      if (b && !el.contains(b)) {
+        const other = b.closest('.feat');
+        if (other) { other.querySelector('.feat-x').click(); setTimeout(() => open(null), reduce ? 0 : 280); return; }
+        open(b); return;
+      }
       if (e.target.closest('[data-close]') && el.contains(e.target)) close();
     });
     document.addEventListener('keydown', (e) => {
@@ -212,7 +216,7 @@
 
   const delivery = D.groups.find((x) => x.id === 'delivery');
   const shared = (id) => ({ g: delivery, d: delivery.decisions.find((x) => x.id === id) });
-  const flows = () => {
+  const flowsHtml = () => {
     const SC = D.scan;
     return `<div class=flows>
       <div class=flow data-flow=cloud>${icon(14)}<p class=fl-h>Cloud</p>
@@ -220,11 +224,11 @@
       <div class=flow data-flow=hybrid>${icon(15)}<p class=fl-h>Hybrid</p>
         <ol><li>Upload<small>residence Wi-Fi, or the My LOCO inbox</small></li><li>Residence: NAS ${SC.nasTb} TB + PC<small>sources · processing</small></li><li>Cloud<small>results only, through a CDN</small></li><li>Site and members</li></ol></div>
     </div>
-    <p class=fs-note>One setup for every scan: works, the park, halls and studios. Change it here and it changes in the other presentations too. The residence server never serves the site itself: visitors load the scans from the cloud.</p>`;
+    <p class=fs-note>One setup for every scan: works, the park, halls and studios. The residence server never serves the site itself: visitors load the scans from the cloud.</p>`;
   };
   const sharedSteps = (off) => [
     { step: 'Who', title: 'Who scans', desc: 'We train one or two people from the LOCO team. Or open it to the community too: members scan their own works and upload them from My LOCO. The same for every kind of scan.', dec: shared('who'), offText: off },
-    { step: 'Processing', title: 'Processing and storage', desc: 'For every scan: everything in the cloud, or sources and processing on a PC and NAS in the residence with only the results in the cloud.', dec: shared('proc'), body: flows(), offText: off },
+    { step: 'Processing', title: 'Processing and storage', desc: 'For every scan: everything in the cloud, or sources and processing on a PC and NAS in the residence with only the results in the cloud.', dec: shared('proc'), body: flowsHtml(), offText: off },
   ];
   // the flows show the processing that is chosen
   const showFlows = (el) => {
@@ -234,5 +238,5 @@
     return on && state[key(p.g, p.d)] === 'hybrid';
   };
 
-  window.LOCO_FEATURE_KIT = { makeFeature, fieldset, icon, step, format, shared, sharedSteps, showFlows };
+  window.LOCO_FEATURE_KIT = { makeFeature, fieldset, icon, step, format, shared, sharedSteps, showFlows, flowsHtml };
 })();

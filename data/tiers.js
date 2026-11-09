@@ -37,6 +37,7 @@ window.LOCO_DATA = {
     scan: { title: 'Artwork viewer · PVF Scan' },
     exhibits: { title: 'Park and halls · PVF Scan' },
     studios: { title: 'Studios over time · PVF Scan' },
+    shared: { title: 'Scan setup · PVF Scan' },
   },
   // PVF Scan pricing: up to ~1 h of computer time per work, plus our handling (checks, publishing, tiles, previews)
   scan: {

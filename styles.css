@@ -935,3 +935,10 @@ html.feat-open { overflow: hidden; }
   .otl-ds { display: block; }
   .otl-name { font-size: 12px; }
 }
+.link-b { font: inherit; color: var(--gc); background: none; border: 0; padding: 0; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.feat-row[hidden] { display: none; }
+.cap { margin-top: 18px; }
+.cap-bar { position: relative; height: 10px; border-radius: 999px; background: #262626; overflow: hidden; margin: 8px 0 6px; }
+.cap-bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--gc); border-radius: 999px; }
+.cap.over .cap-bar i { background: var(--orange); }
+.cap.over .cap-t { color: var(--orange); }

@@ -63,25 +63,20 @@
   const volume = `<div class=vol>
       <label class=vol-l for=fs-n>Works scanned per month <output id=fs-no></output></label>
       <input id=fs-n type=range min=0 max=200 step=5>
-      <div class=vol-m role=radiogroup aria-label="Processing">
-        <label><input type=radio name=scanmode value=night> Night queue ${esc(SC.nightWindow)}</label>
-        <label><input type=radio name=scanmode value=instant> Instant</label>
-        <p class=vol-own>Own PC in the residence: processed there, no paid computer time.</p>
-      </div>
     </div>
-    <div class=fs-cost></div>`;
+    <div class=fs-cost></div>
+    <p class=fs-note>How the scans are processed (cloud or a PC in the residence, night queue or instant) and who scans are set once for every scan in <button type=button class=link-b data-feature=shared>Scan setup</button>, in the Delivery group.</p>`;
 
   let painted = false;
   K.makeFeature({
     id: 'scan',
     color: g.color,
-    decisions: [...g.decisions.filter((x) => x.feature === 'scan').map((x) => ({ g, d: x })), K.shared('who'), K.shared('proc')],
+    decisions: g.decisions.filter((x) => x.feature === 'scan').map((x) => ({ g, d: x })),
     intro,
     steps: [
       { step: 'Level', title: 'How works look on the site', desc: 'Gallery is what LOCO has today: photos as they are. PVF Scan adds a flat super-resolution image with deep zoom; Flat + Object adds 3D scans of sculpture and objects.', dec: { g, d: d('scan') } },
       { step: 'Progress', title: 'Progress of a work over time', desc: 'Each new scan of the same work becomes a stage on a timeline on the artwork page. Works for flat works and objects.', dec: { g, d: d('progress') }, offText: off },
-      ...K.sharedSteps(off),
-      { step: 'Volume', title: 'Volume', desc: 'How many works are scanned a month, and how fast they are processed. Prices are in the summary at the end.', body: volume, offText: off, na: () => isOff(g, d('progress')) },
+      { step: 'Volume', title: 'Volume', desc: 'How many works are scanned a month. Prices are in the summary at the end.', body: volume, offText: off, na: () => isOff(g, d('progress')) },
     ],
     totalTitle: (ctx) => ctx.sel(g, d('scan')).label,
     onOpen: () => {
@@ -93,14 +88,12 @@
       el.querySelector('.lp-hi').style.backgroundImage = `url(assets/pvf-scan/scan.jpg?v=${V})`;
       el.querySelector('.lp-lo').style.backgroundImage = `url(assets/pvf-scan/photo.jpg?v=${V})`;
     },
-    onChange: (e) => { if (e.target.name !== 'scanmode') return false; scanCfg.mode = e.target.value; return true; },
     bind: (ctx) => { const n = ctx.el.querySelector('#fs-n'); n.addEventListener('input', () => { scanCfg.n = Number(n.value); B.refresh(); }); },
     refresh: (ctx) => {
       const el = ctx.el;
       const scanOn = !isOff(g, d('progress'));
-      const own = K.showFlows(el);
+      const own = B.ownPc(B.state);
       el.querySelector('#fs-n').value = scanCfg.n; el.querySelector('#fs-no').textContent = scanCfg.n;
-      el.querySelectorAll('[name=scanmode]').forEach((r) => { r.checked = r.value === scanCfg.mode; r.disabled = own || !scanOn; });
       el.querySelector('.vol').classList.toggle('own', own);
       el.querySelector('.vol').classList.toggle('off', !scanOn);
       const names = [...ctx.svc].map((x) => (x === 'scanproc' ? `PVF Scan processing: ${scanCfg.n} works a month, ${own ? 'on the residence PC' : scanCfg.mode === 'night' ? 'night queue' : 'instant'}` : D.services[x].name));

@@ -871,6 +871,7 @@
       });
       const fr = document.getElementById('g-' + g.id).querySelector('.feat-row');
       if (fr) {
+        fr.hidden = !t.choices.some(({ d, off }) => d.feature && !off);
         // the first feature decision of the group always shows; the others when they are above their first level
         const fc = t.choices.filter(({ d, off }) => d.feature && !off);
         const shown = fc.filter(({ d, c }, i) => i === 0 || c.id !== d.choices[0].id).map(({ c }) => c.label);
