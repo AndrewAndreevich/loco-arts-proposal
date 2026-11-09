@@ -73,19 +73,15 @@ BUILDER = """
 <section id=builder class=builder aria-labelledby=builder-h><div class=wrap>
 <p class=kicker>Tier builder</p>
 <h2 id=builder-h data-split>Every group of screens, and how each tier changes it</h2>
-<p class=big>Each group is a set of screens with their transitions. Options under a group show which tier uses which solution. Switch a tier with 1 / 2 / 3, or pick options one by one: hours, price and monthly services update below. Rate: <span id=rate></span> per hour.</p>
+<p class=big>Each group is a set of screens with their transitions, and options showing which tier uses which solution. The bar below adds up hours and monthly services as you go: scrolling past a group adds all of it; opening its screens one by one adds only the screens you look at and the options you pick. Tiers 1 / 2 / 3 switch the options.</p>
 <div class=legend aria-hidden=true><span class="td td-E">Essential</span><span class="td td-S">Signature</span><span class="td td-F">Flagship</span><span class="td td-alt">Alternative</span><span class=legend-dash>dashed screen = comes with an option</span></div>
 <div id=groups></div>
 <noscript><p class=big>The tier builder needs JavaScript. The full proposal follows below.</p></noscript>
 <div class="grp services-box reveal" style="--gc:var(--yellow)"><div class=grp-head><span class=grp-n>€</span><h3>Monthly services for the chosen options</h3></div><ul id=services class=svc></ul></div>
 </div></section>
-<div class=calc role=region aria-label="Estimate"><div class=calc-in>
-<span class=c-cell><span class=c-l>Tier</span><span id=c-tier class=c-v>Essential</span></span>
-<span class=c-cell><span class=c-l>Screens</span><span id=c-screens class=c-v>49</span></span>
-<span class=c-cell><span class=c-l>Hours</span><span id=c-hours class=c-v>400</span></span>
-<span class="c-cell c-price"><span class=c-l>Price</span><span id=c-price class=c-v aria-live=polite>$12,000</span></span>
-<span class=c-cell><span class=c-l>Timeline</span><span id=c-weeks class=c-v>6 weeks</span></span>
-<span class=c-cell><span class=c-l>Services</span><span id=c-monthly class=c-v>$65–$195 / mo</span></span>
+<div class=calc role=region aria-label="Running tally"><div class=calc-in>
+<span class=c-cell><span class=c-l>Hours</span><span id=c-hours class=c-v aria-live=polite>0</span></span>
+<span class=c-cell><span class=c-l>Services</span><span id=c-monthly class=c-v>—</span></span>
 </div></div>
 """
 src = src.replace(strip, "")

@@ -240,7 +240,7 @@
       const sum = (D.summaries || {})[sc.id] || '';
       sl.innerHTML = `<div class="wf big wf-${sc.kind}" aria-hidden=true>${WF_NAV}<div class=wf-body>${WF[sc.kind] || WF.text}</div>${WF_FOOT}</div>
         <div class=slide-body>
-          <p class=s-top><span class=s-id>${sc.id}</span><span class=s-n>${idx + 1} / ${screens.length}</span><span class=s-h>${sc.h} h · ${money(sc.h * D.rate)}</span></p>
+          <p class=s-top><span class=s-id>${sc.id}</span><span class=s-n>${idx + 1} / ${screens.length}</span><span class=s-h>${sc.h} h</span></p>
           <h4>${esc(sc.name)}</h4>
           ${sum ? `<p class=s-sum>${esc(sum)}</p>` : ''}
           ${parts.length ? `<ul class=s-parts>${parts.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
@@ -325,11 +325,12 @@
     const cur = api.track.querySelector('.slide.cur');
     if (!cur) return;
     const sb = api.wrapEl.getBoundingClientRect();
-    const wb = (cur.querySelector('.wf') || cur.querySelector('legend') || cur).getBoundingClientRect();
-    const top = `${wb.top - sb.top + wb.height / 2}px`;
+    const cs = cur.getBoundingClientRect();
+    const w = api.prev.offsetWidth || 30;
+    const top = `${cs.top - sb.top + cs.height / 2}px`;
     api.prev.style.top = top; api.next.style.top = top;
-    api.prev.style.left = `${wb.left - sb.left + 8}px`;
-    api.next.style.left = `${wb.right - sb.left - 8 - (api.next.offsetWidth || 30)}px`;
+    api.prev.style.left = `${cs.left - sb.left - w - 6}px`;
+    api.next.style.left = `${cs.right - sb.left + 6}px`;
     const ids = visibleIds(api);
     api.prev.hidden = ids.indexOf(api.active) === 0;
     api.next.hidden = ids.indexOf(api.active) === ids.length - 1;
@@ -338,6 +339,7 @@
   function slideTo(api, id, smooth = true) {
     const sl = api.track.querySelector(`.slide[data-id="${id}"]`);
     if (!sl) return;
+    seen(api, id);
     api.track.scrollTo({ left: sl.offsetLeft - (api.track.clientWidth - sl.offsetWidth) / 2, behavior: smooth && !reduce ? 'smooth' : 'auto' });
     setActive(api, id);
   }
@@ -360,7 +362,7 @@
           const d = Math.abs(s.offsetLeft + s.offsetWidth / 2 - mid);
           if (d < dist) { dist = d; best = s.dataset.id; }
         });
-        if (best && best !== api.active) setActive(api, best); else placeArrows(api);
+        if (best && best !== api.active) { seen(api, best); setActive(api, best); } else placeArrows(api);
       });
     }, { passive: true });
     const step = (dir) => {
@@ -409,59 +411,104 @@
   placeDecs();
   phone.addEventListener('change', placeDecs);
 
-  // ---------- estimate ----------
-  const out = Object.fromEntries(['c-tier', 'c-screens', 'c-hours', 'c-price', 'c-weeks', 'c-monthly'].map((i) => [i, document.getElementById(i)]));
+  // ---------- running tally of hours and services ----------
+  // Scrolling past a group adds the whole group. Moving through its carousel instead adds only the
+  // screens actually viewed, plus options the visitor picks; such a group is never added in bulk later.
+  const counted = {}; // group id -> 'all' | Set of viewed screen ids
+  const picked = new Set(); // decision keys chosen by the visitor
+  const gidOf = (api) => api.sec.id.slice(2);
+  function seen(api, id) {
+    const gid = gidOf(api);
+    if (counted[gid] === 'all' || id.startsWith('dec:')) return;
+    if (!counted[gid]) counted[gid] = new Set([api.active]);
+    counted[gid].add(id);
+    update();
+  }
+
+  const out = { hours: document.getElementById('c-hours'), monthly: document.getElementById('c-monthly') };
   const servicesEl = document.getElementById('services');
   const switches = [...document.querySelectorAll('[data-tier]')];
+  const pageHours = (pages) => (pages || []).reduce((a, p) => a + (p.h || 0), 0);
 
   function update() {
-    let hours = 0; let screensTotal = 0;
+    let hours = 0;
     const svc = new Set();
     groups.forEach(({ g, api }) => {
       let gh = g.hours; let gs = g.pages.length;
-      (g.services || []).forEach((s) => svc.add(s));
-      const active = new Set();
-      g.decisions.forEach((d) => {
+      const activePages = new Map(g.pages.map((p) => [p.id, p]));
+      const choices = g.decisions.map((d) => {
         const c = d.choices.find((x) => x.id === state[key(g, d)]);
         gh += c.hours;
-        (c.pages || []).forEach((p) => { if (!active.has(p.id)) { active.add(p.id); gs += 1; } });
-        (c.services || []).forEach((s) => svc.add(s));
+        (c.pages || []).forEach((p) => { if (!activePages.has(p.id)) { activePages.set(p.id, p); gs += 1; } });
         document.getElementById(`c-${g.id}-${d.id}-${c.id}`).checked = true;
+        return { d, c };
       });
       if (api) {
-        api.sec.querySelectorAll('.node.opt, .slide.opt').forEach((el) => el.classList.toggle('off', !active.has(el.dataset.id)));
+        api.sec.querySelectorAll('.node.opt, .slide.opt').forEach((el) => el.classList.toggle('off', !activePages.has(el.dataset.id)));
         api.sec.querySelectorAll('.edge').forEach((e) => {
-          const optOff = [e.dataset.a, e.dataset.b].some((id) => allPages[id] && !g.pages.some((p) => p.id === id) && pageGroup[id] === g.id && !active.has(id));
+          const optOff = [e.dataset.a, e.dataset.b].some((id) => allPages[id] && pageGroup[id] === g.id && !activePages.has(id));
           e.classList.toggle('off', optOff);
         });
       }
-      const sec = document.getElementById('g-' + g.id);
-      sec.querySelector('.grp-meta').textContent = `${gs ? `${gs} ${gs === 1 ? 'screen' : 'screens'} · ` : ''}${gh} h · ${money(gh * D.rate)}`;
-      hours += gh; screensTotal += gs;
+      document.getElementById('g-' + g.id).querySelector('.grp-meta').textContent =
+        `${gs ? `${gs} ${gs === 1 ? 'screen' : 'screens'} · ` : ''}${gh} h`;
+
+      const c = counted[g.id];
+      if (c === 'all') {
+        hours += gh;
+        (g.services || []).forEach((x) => svc.add(x));
+        choices.forEach(({ c: ch }) => (ch.services || []).forEach((x) => svc.add(x)));
+      } else if (c) {
+        let any = false;
+        activePages.forEach((p, id) => { if (c.has(id)) { hours += p.h || 0; any = true; } });
+        choices.forEach(({ d, c: ch }) => {
+          if (!picked.has(key(g, d))) return;
+          hours += ch.hours - pageHours(ch.pages); any = true;
+          (ch.services || []).forEach((x) => svc.add(x));
+        });
+        if (any) (g.services || []).forEach((x) => svc.add(x));
+      }
     });
     let lo = 0; let hi = 0;
     const rows = [];
-    svc.forEach((s) => {
-      const v = D.services[s]; lo += v.min; hi += v.max;
+    svc.forEach((x) => {
+      const v = D.services[x]; lo += v.min; hi += v.max;
       rows.push(`<li><span>${esc(v.name)}</span><span>${v.min === v.max ? money(v.min) : `${money(v.min)}–${money(v.max)}`}</span></li>`);
     });
+    out.hours.textContent = hours;
+    out.monthly.textContent = svc.size ? `${money(lo)}–${money(hi)} / mo` : '—';
+    if (servicesEl) servicesEl.innerHTML = (rows.join('') || '<li><span>Nothing counted yet: scroll or open screens above</span></li>')
+      + (svc.size ? `<li class=tot><span>Total</span><span>${money(lo)}–${money(hi)} / month</span></li>` : '');
     const t = matchingTier();
-    out['c-tier'].textContent = t ? t.name : 'Custom';
-    out['c-tier'].style.color = t ? `var(--${t.color})` : 'var(--pink)';
-    out['c-screens'].textContent = screensTotal;
-    out['c-hours'].textContent = hours;
-    out['c-price'].textContent = money(hours * D.rate);
-    out['c-weeks'].textContent = t ? `${t.weeks} weeks` : `≈ ${Math.ceil(hours / D.hoursPerWeek)} weeks`;
-    out['c-monthly'].textContent = `${money(lo)}–${money(hi)} / mo`;
-    if (servicesEl) servicesEl.innerHTML = rows.join('') + `<li class=tot><span>Total</span><span>${money(lo)}–${money(hi)} / month</span></li>`;
     switches.forEach((b) => b.setAttribute('aria-pressed', String(!!t && b.dataset.tier === t.id)));
   }
   function setTier(tid) { Object.assign(state, defaults(tid)); update(); }
 
+  // scrolling past a group that was not explored screen by screen adds all of it
+  let vraf = 0;
+  window.addEventListener('scroll', () => {
+    cancelAnimationFrame(vraf);
+    vraf = requestAnimationFrame(() => {
+      let changed = false;
+      groups.forEach(({ g }) => {
+        if (counted[g.id]) return;
+        if (document.getElementById('g-' + g.id).getBoundingClientRect().bottom < window.innerHeight * 0.55) { counted[g.id] = 'all'; changed = true; }
+      });
+      if (changed) update();
+    });
+  }, { passive: true });
+
   root.addEventListener('change', (e) => {
-    if (e.target.type === 'radio') { state[e.target.name] = e.target.value; update(); }
+    if (e.target.type !== 'radio') return;
+    state[e.target.name] = e.target.value;
+    const gid = e.target.name.split('.')[0];
+    picked.add(e.target.name);
+    if (!counted[gid]) {
+      const gr = groups.find((x) => x.g.id === gid);
+      counted[gid] = new Set(gr && gr.api ? [gr.api.active] : []);
+    }
+    update();
   });
   switches.forEach((b) => b.addEventListener('click', () => setTier(b.dataset.tier)));
-  document.getElementById('rate').textContent = money(D.rate);
   setTier('E');
 })();
