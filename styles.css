@@ -95,14 +95,17 @@ body { padding-bottom: 96px; }
 .grp h3 { margin: 0; color: var(--gc); font-size: var(--h); line-height: 1.1; letter-spacing: -.02em; }
 /* the line at the bottom of a group: what the group adds when the bar reaches it */
 .grp-foot {
-  display: flex; justify-content: space-between; align-items: baseline; gap: 8px 24px; flex-wrap: wrap;
-  margin-top: 40px; padding: 0 0 12px; border-bottom: 1px solid var(--gc); color: var(--mute);
-  font-variant-numeric: tabular-nums; transition: color .3s;
+  /* same columns, type and spacing as the bar fixed at the bottom, so the two line up exactly */
+  display: flex; gap: 10px 32px; align-items: baseline; flex-wrap: nowrap;
+  margin-top: 40px; padding: 10px 0; border-bottom: 1px solid var(--gc); color: var(--mute);
+  font-variant-numeric: tabular-nums;
 }
-.gf-v { display: flex; gap: 6px 24px; flex-wrap: wrap; font-size: 22px; line-height: 1.1; }
-.gf-s { font-size: 14px; }
-.grp-foot.on .gf-v { color: var(--gc); }
+.grp-foot .c-v { transition: color .3s; }
+.gf-s { margin-left: auto; font-size: 12px; white-space: nowrap; }
+.grp-foot.on .c-v { color: var(--gc); }
 .grp-foot.on .gf-s { color: var(--fg); }
+/* the hours column has one width in the bar and on every group line */
+.calc-in .c-cell:first-child, .grp-foot .c-cell:first-child { min-width: 92px; }
 .grp-note { color: #cfcfcf; max-width: 80ch; margin: 14px 0 0; }
 .grp-noscreens { color: var(--mute); margin: 18px 0 0; }
 /* screen map: small empty pages, thin threads between them */
@@ -525,7 +528,8 @@ details.prop > section { padding-top: 8px; padding-bottom: 56px; }
   .timeline { grid-template-columns: repeat(6, 1fr); }
   .meta, footer { grid-template-columns: 1fr; }
   .grp-head { grid-template-columns: auto 1fr; padding-right: 52px; }
-  .gf-v { font-size: 18px; }
+  .grp-foot { gap: 32px; }
+  .calc-in .c-cell:first-child, .grp-foot .c-cell:first-child { min-width: 76px; }
   .rep-big, .rep-cols { grid-template-columns: 1fr; }
   .rep-big { gap: 22px; }
   .rep-t { font-size: 13px; }

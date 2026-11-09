@@ -323,7 +323,7 @@
     root.appendChild(sec);
     const foot = document.createElement('div');
     foot.className = 'grp-foot';
-    foot.innerHTML = `<span class=gf-s></span><span class=gf-v><span class=gf-h></span><span class=gf-m></span></span>`;
+    foot.innerHTML = `<span class=c-cell><span class=c-l>Hours</span><span class="c-v gf-h"></span></span><span class=c-cell><span class=c-l>Services</span><span class="c-v gf-m"></span></span><span class=gf-s></span>`;
     sec.appendChild(foot);
     groups.push({ g, api });
   });
@@ -747,13 +747,13 @@
       const [slo, shi] = svcRange(t.svc);
       sec.querySelector('.gf-s').textContent = t.screens ? `${t.screens} ${t.screens === 1 ? 'screen' : 'screens'}` : 'No screens of its own';
       sec.querySelector('.gf-h').textContent = `+${t.h} h`;
-      sec.querySelector('.gf-m').textContent = t.svc.size ? `+${range(slo, shi)} / mo services` : '+$0 services';
+      sec.querySelector('.gf-m').textContent = t.svc.size ? `+${range(slo, shi)} / mo` : '—';
       sec.querySelector('.grp-foot').classList.toggle('on', !!passed[g.id]);
       if (passed[g.id]) { hours += t.h; t.svc.forEach((x) => svc.add(x)); }
       return { g, t };
     });
     const [lo, hi] = svcRange(svc);
-    roll(out.hours, String(hours), hours);
+    roll(out.hours, `${hours} h`, hours);
     roll(out.monthly, svc.size ? `${range(lo, hi)} / mo` : '—', lo);
     if (servicesEl) {
       const rows = [...svc].map((x) => { const v = D.services[x]; return `<li><span>${esc(v.name)}</span><span>${range(v.min, v.max)}</span></li>`; });
