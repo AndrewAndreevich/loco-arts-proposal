@@ -20,20 +20,9 @@
         ${c.note ? `<span class=opt-n>${esc(c.note)}</span>` : ''}${optSvc(c)}<span class=tds>${tierDots(c.tiers)}</span></label>`;
     }).join('')}</div></fieldset>`;
 
-  // small line drawings for the tutorial
-  const I = {
-    light: '<rect x="22" y="14" width="36" height="28" rx="1"/><path d="M6 6 L14 14 M74 6 L66 14"/><path d="M2 2 h8 l-2 8 z M78 2 h-8 l2 8 z"/><rect x="60" y="34" width="10" height="7"/>',
-    grid: '<rect x="8" y="6" width="64" height="40" rx="1"/><g stroke-dasharray="2 2"><rect x="10" y="8" width="24" height="18"/><rect x="26" y="8" width="24" height="18"/><rect x="42" y="8" width="24" height="18"/><rect x="10" y="22" width="24" height="18"/><rect x="26" y="22" width="24" height="18"/><rect x="42" y="22" width="24" height="18"/></g>',
-    upload: '<rect x="10" y="30" width="60" height="16" rx="2"/><path d="M40 4 v22 M32 12 l8 -8 l8 8"/><circle cx="62" cy="38" r="2"/>',
-    night: '<path d="M46 8 a16 16 0 1 0 16 22 a13 13 0 0 1 -16 -22 z"/><path d="M12 44 h56"/>',
-    page: '<rect x="12" y="4" width="44" height="42" rx="2"/><rect x="18" y="12" width="32" height="20"/><circle cx="58" cy="36" r="9"/><path d="M64 42 l8 8"/>',
-    rings: '<ellipse cx="40" cy="38" rx="32" ry="8"/><ellipse cx="40" cy="24" rx="26" ry="6"/><path d="M34 40 v-26 q6 -8 12 0 v26 z"/><circle cx="8" cy="38" r="1.5"/><circle cx="72" cy="38" r="1.5"/><circle cx="14" cy="24" r="1.5"/><circle cx="66" cy="24" r="1.5"/>',
-    cube: '<path d="M40 6 L66 18 L66 40 L40 50 L14 40 L14 18 Z M14 18 L40 30 L66 18 M40 30 V50"/>',
-    layers: '<rect x="14" y="20" width="40" height="26"/><rect x="20" y="13" width="40" height="26"/><rect x="26" y="6" width="40" height="26"/>',
-    slider: '<rect x="10" y="10" width="60" height="26" rx="1"/><path d="M10 44 h60"/><circle cx="46" cy="44" r="4"/>',
-  };
-  const svg = (k) => `<svg viewBox="0 0 80 52" width=80 height=52 aria-hidden=true class=fs-ic>${I[k]}</svg>`;
-  const step = (n, ic, h, p) => `<li class=fs-step><span class=fs-sn>${n}</span>${svg(ic)}<h4>${h}</h4><p>${p}</p></li>`;
+  // tutorial icons: one generated sheet cut into assets/pvf-scan/icon-01..15.png (see design/pvf-scan-prompts.md)
+  const icon = (k) => `<img class=fs-ic src="assets/pvf-scan/icon-${String(k).padStart(2, '0')}.png" alt="" width=160 height=100 loading=lazy decoding=async>`;
+  const step = (n, ic, h, p) => `<li class=fs-step><span class=fs-sn>${n}</span>${icon(ic)}<h4>${h}</h4><p>${p}</p></li>`;
   const perNight = SC.hoursPerWork * SC.night + SC.handling;
   const perInstant = SC.hoursPerWork * SC.instant + SC.handling;
 
@@ -60,16 +49,17 @@
       <p class=kicker>PVF Scan</p>
       <h2 id=fs-h>From a phone photo to a museum-grade scan</h2>
       <p class=big>The same camera LOCO already uses, 10–20 close-up frames instead of one, and our pipeline turns them into one flat image of the work in super resolution, with no perspective and no lens distortion. It appears on the site on its own, ready to zoom into down to the brushstroke.</p>
-      <div class=cmp style="--x:50%">
-        <div class=cmp-scan><img data-hi alt="The work as a PVF Scan: flat and sharp"></div>
-        <div class=cmp-photo><div class=cmp-wall><img data-lo alt="The same work as a phone photo: at an angle, soft, with glare"><i class=cmp-glare></i></div></div>
-        <i class=cmp-line aria-hidden=true></i>
-        <span class="cmp-tag l">Phone photo</span><span class="cmp-tag r">PVF Scan · Flat</span>
-        <input class=cmp-r type=range min=0 max=100 value=50 aria-label="Move to compare the phone photo and the PVF Scan">
-      </div>
-      <div class=loupes>
-        <figure><div class="lp lp-lo"></div><figcaption>Phone photo, zoomed in</figcaption></figure>
-        <figure><div class="lp lp-hi"></div><figcaption>PVF Scan, the same spot</figcaption></figure>
+      <div class=cmp2>
+        <figure class=c2-photo>
+          <img data-lo alt="The work photographed with an ordinary camera: on the wall, at an angle, in its frame" width=1024 height=1024>
+          <figcaption><b>Camera photo</b>At an angle, in its frame, lit from the ceiling: the usual catalogue picture.</figcaption>
+        </figure>
+        <figure class=c2-scan>
+          <img data-hi alt="The same work as a PVF Scan: flat, square, edge to edge" width=2560 height=1920>
+          <figcaption><b>PVF Scan · Flat</b>Square, edge to edge, no distortion, true colours, in super resolution.</figcaption>
+        </figure>
+        <figure class=c2-lp><div class="lp lp-lo"></div><figcaption>Camera photo, zoomed in</figcaption></figure>
+        <figure class=c2-lp><div class="lp lp-hi"></div><figcaption>PVF Scan, the same spot</figcaption></figure>
       </div>
     </section>
 
@@ -90,29 +80,29 @@
       <div class=fs-fmt>
         <div class=fs-fmt-h><span class=fs-tag>2D</span><h4>Flat works</h4><p>Paintings, graphics, photographs, textile: one flat, distortion-free image in super resolution.</p></div>
         <ol class=fs-steps>
-          ${step(1, 'light', 'Light it evenly', 'Two lights at 45° to the work, no direct sun. Put the colour card next to the work in the first frame.')}
-          ${step(2, 'grid', 'Shoot close, in a grid', 'Camera parallel to the work, 10–20 frames in rows with about 60% overlap, every frame in focus. The camera you already have.')}
-          ${step(3, 'upload', 'Upload', 'In the residence: over Wi-Fi straight to the scan server. From home: in My LOCO, into the inbox.')}
-          ${step(4, 'night', 'Processing', `Up to about ${SC.hoursPerWork} hour of computer time per work. The night queue (${esc(SC.nightWindow)}) costs less; instant costs more.`)}
-          ${step(5, 'page', 'On the site', 'Deep zoom on the artwork page, real size in centimetres, previews for cards and the catalogue.')}
+          ${step(1, 1, 'Light it evenly', 'Two lights at 45° to the work, no direct sun. Put the colour card next to the work in the first frame.')}
+          ${step(2, 2, 'Shoot close, in a grid', 'Camera parallel to the work, 10–20 frames in rows with about 60% overlap, every frame in focus. The camera you already have.')}
+          ${step(3, 3, 'Upload', 'In the residence: over Wi-Fi straight to the scan server. From home: in My LOCO, into the inbox.')}
+          ${step(4, 4, 'Processing', `Up to about ${SC.hoursPerWork} hour of computer time per work. The night queue (${esc(SC.nightWindow)}) costs less; instant costs more.`)}
+          ${step(5, 5, 'On the site', 'Deep zoom on the artwork page, real size in centimetres, previews for cards and the catalogue.')}
         </ol>
       </div>
       <div class=fs-fmt>
         <div class=fs-fmt-h><span class=fs-tag>3D</span><h4>Sculpture and objects</h4><p>Anything with volume: a 3D scan you can turn around, and renders made from it.</p></div>
         <ol class=fs-steps>
-          ${step(1, 'light', 'Soft light all around', 'No hard shadows. Put the object on a turntable or walk around it.')}
-          ${step(2, 'rings', 'Shoot in rings', '60–100 frames in 2–3 rings at different heights, each frame overlapping the next.')}
-          ${step(3, 'upload', 'Upload', 'The same way as flat works: Wi-Fi in the residence or My LOCO from home.')}
-          ${step(4, 'cube', 'Processing', 'The photos become a 3D scene (Gaussian Splatting); renders are made from it automatically: a turntable and hero angles.')}
-          ${step(5, 'page', 'On the site', 'A 3D view on the artwork page; the renders go to cards and the catalogue.')}
+          ${step(1, 6, 'Soft light all around', 'No hard shadows. Put the object on a turntable or walk around it.')}
+          ${step(2, 7, 'Shoot in rings', '60–100 frames in 2–3 rings at different heights, each frame overlapping the next.')}
+          ${step(3, 8, 'Upload', 'The same way as flat works: Wi-Fi in the residence or My LOCO from home.')}
+          ${step(4, 9, 'Processing', 'The photos become a 3D scene (Gaussian Splatting); renders are made from it automatically: a turntable and hero angles.')}
+          ${step(5, 10, 'On the site', 'A 3D view on the artwork page; the renders go to cards and the catalogue.')}
         </ol>
       </div>
       <div class=fs-fmt>
         <div class=fs-fmt-h><span class=fs-tag>2D + 3D</span><h4>Progress over time</h4><p>For both formats: the same work scanned at every stage.</p></div>
         <ol class="fs-steps fs-steps-3">
-          ${step(1, 'layers', 'Scan again', 'At each stage, scan the same work with the same setup.')}
-          ${step(2, 'grid', 'Aligned for you', 'Each new scan is matched to the previous one automatically, so the work does not jump between stages.')}
-          ${step(3, 'slider', 'Timeline', 'A slider on the artwork page shows how the work changed, with the date of every stage.')}
+          ${step(1, 11, 'Scan again', 'At each stage, scan the same work with the same setup.')}
+          ${step(2, 12, 'Aligned for you', 'Each new scan is matched to the previous one automatically, so the work does not jump between stages.')}
+          ${step(3, 13, 'Timeline', 'A slider on the artwork page shows how the work changed, with the date of every stage.')}
         </ol>
       </div>
     </section>
@@ -129,11 +119,11 @@
       ${fieldset(dec('proc'))}
       <div class=flows>
         <div class=flow data-flow=cloud>
-          <p class=fl-h>Cloud</p>
+          ${icon(14)}<p class=fl-h>Cloud</p>
           <ol><li>Team or members upload</li><li>Cloud<small>sources · processing · results</small></li><li>Site and members</li></ol>
         </div>
         <div class=flow data-flow=hybrid>
-          <p class=fl-h>Hybrid</p>
+          ${icon(15)}<p class=fl-h>Hybrid</p>
           <ol><li>Upload<small>residence Wi-Fi, or the My LOCO inbox</small></li><li>Residence: NAS ${SC.nasTb} TB + PC<small>sources · processing</small></li><li>Cloud<small>results only, through a CDN</small></li><li>Site and members</li></ol>
         </div>
       </div>
@@ -157,62 +147,18 @@
   </div>`;
   document.body.appendChild(el);
 
-  // ---------- the demo painting: drawn once, sharp for the scan, small and soft for the photo ----------
+  // ---------- the comparison images load when the presentation opens ----------
   let painted = false;
   function paint() {
     if (painted) return;
     painted = true;
-    let seed = 7;
-    const rnd = () => { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
-    const W = 1600; const H = 1200;
-    const c = document.createElement('canvas'); c.width = W; c.height = H;
-    const x = c.getContext('2d');
-    const pal = ['#1d3b6e', '#d94f2b', '#f2c14e', '#2f7d5b', '#e9e1cf', '#161616', '#c2185b', '#6a8caf', '#8a5a2b'];
-    const bg = x.createLinearGradient(0, 0, W, H); bg.addColorStop(0, '#e8d9b8'); bg.addColorStop(1, '#c9a36b');
-    x.fillStyle = bg; x.fillRect(0, 0, W, H);
-    for (let i = 0; i < 16; i += 1) {
-      x.save(); x.translate(rnd() * W, rnd() * H); x.rotate(rnd() * Math.PI);
-      x.globalAlpha = 0.75 + rnd() * 0.2; x.fillStyle = pal[Math.floor(rnd() * pal.length)];
-      x.beginPath(); x.ellipse(0, 0, 80 + rnd() * 320, 40 + rnd() * 180, 0, 0, Math.PI * 2); x.fill(); x.restore();
-    }
-    // brushstrokes: the detail a phone photo loses
-    x.lineCap = 'round';
-    const img = x.getImageData(0, 0, W, H).data; // one read: stroke colours come from the shapes underneath
-    for (let i = 0; i < 9000; i += 1) {
-      const px = rnd() * W; const py = rnd() * H;
-      const a = Math.sin(px / 180) + Math.cos(py / 140);
-      const len = 6 + rnd() * 26;
-      const o = ((Math.min(H - 1, py | 0) * W) + Math.min(W - 1, px | 0)) * 4;
-      const base = [img[o], img[o + 1], img[o + 2]];
-      const j = (v) => Math.max(0, Math.min(255, v + (rnd() - 0.5) * 70));
-      x.strokeStyle = `rgba(${j(base[0])},${j(base[1])},${j(base[2])},0.55)`;
-      x.lineWidth = 1.2 + rnd() * 4;
-      x.beginPath(); x.moveTo(px, py); x.lineTo(px + Math.cos(a) * len, py + Math.sin(a) * len); x.stroke();
-    }
-    // canvas weave and fine cracks
-    x.globalAlpha = 0.05; x.strokeStyle = '#000'; x.lineWidth = 1;
-    for (let i = 0; i < W; i += 3) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, H); x.stroke(); }
-    for (let i = 0; i < H; i += 3) { x.beginPath(); x.moveTo(0, i); x.lineTo(W, i); x.stroke(); }
-    x.globalAlpha = 0.22; x.lineWidth = 0.7;
-    for (let k = 0; k < 40; k += 1) {
-      let cx = rnd() * W; let cy = rnd() * H; x.beginPath(); x.moveTo(cx, cy);
-      for (let s = 0; s < 8; s += 1) { cx += (rnd() - 0.5) * 60; cy += (rnd() - 0.5) * 60; x.lineTo(cx, cy); }
-      x.stroke();
-    }
-    x.globalAlpha = 1;
-    const hi = c.toDataURL('image/jpeg', 0.9);
-    const s = document.createElement('canvas'); s.width = 240; s.height = 180;
-    s.getContext('2d').drawImage(c, 0, 0, 240, 180);
-    const lo = s.toDataURL('image/jpeg', 0.7);
-    el.querySelector('[data-hi]').src = hi;
-    el.querySelector('[data-lo]').src = lo;
-    el.querySelector('.lp-hi').style.backgroundImage = `url(${hi})`;
-    el.querySelector('.lp-lo').style.backgroundImage = `url(${lo})`;
+    el.querySelector('[data-hi]').src = 'assets/pvf-scan/scan.jpg';
+    el.querySelector('[data-lo]').src = 'assets/pvf-scan/photo.jpg';
+    el.querySelector('.lp-hi').style.backgroundImage = 'url(assets/pvf-scan/scan.jpg)';
+    el.querySelector('.lp-lo').style.backgroundImage = 'url(assets/pvf-scan/photo.jpg)';
   }
 
-  // ---------- compare slider and tutorial tabs ----------
-  const cmp = el.querySelector('.cmp');
-  el.querySelector('.cmp-r').addEventListener('input', (e) => cmp.style.setProperty('--x', `${e.target.value}%`));
+  // ---------- compare slider ----------
 
   // ---------- choices: the same state as the page ----------
   const n = el.querySelector('#fs-n');

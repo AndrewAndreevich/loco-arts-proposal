@@ -26,3 +26,11 @@ A straight-on orthographic museum-grade scan of an original contemporary abstrac
 Bold organic shapes in ultramarine blue, vermilion, ochre yellow, deep green and warm off-white, overlapping like a lively composition. Thick impasto brushstrokes and palette-knife ridges you can almost touch, visible linen canvas weave in the thinner areas, fine craquelure in the white, a few small drips, and a small hand-written signature in the lower right corner.
 Even, diffuse museum lighting: no glare, no reflections, no hot spots, true colours. Extremely sharp from corner to corner, ultra detailed, high resolution.
 ```
+
+## 3. The same painting as an ordinary camera photo (left side of the comparison)
+
+Input image: the reference artwork from prompt 2 (downscaled to 2048 px). Model: Nano Banana Pro.
+
+```
+A casual photo of this exact painting taken with an ordinary camera by a gallery assistant. The same painting, same shapes and colours, hangs on a white gallery wall in a thin light wooden frame, with some wall visible around it. The camera is handheld, a little to the left of the painting and slightly below its centre, so the painting is seen at an angle: clear perspective, the right edge looks smaller than the left, the frame is not square to the image, slight barrel lens distortion. Light from ceiling spotlights: uneven brightness, a soft glare patch on the upper right of the paint surface, one corner a bit darker. Slightly soft focus, a little camera noise, colours a bit washed out compared to the original, ordinary white balance. A realistic documentation snapshot, not a professional reproduction. No people, no text.
+```

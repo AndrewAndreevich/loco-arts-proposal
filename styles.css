@@ -659,9 +659,6 @@ html.feat-open { overflow: hidden; }
 .cmp img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .cmp-scan, .cmp-photo { position: absolute; inset: 0; }
 .cmp-photo { clip-path: inset(0 calc(100% - var(--x)) 0 0); }
-.cmp-wall { position: absolute; inset: 0; background: radial-gradient(120% 90% at 40% 40%, #4a4239, #1d1915); perspective: 1100px; overflow: hidden; }
-.cmp-wall img { transform: rotateY(11deg) rotateX(5deg) scale(.82) translateX(-2%); filter: blur(1px) saturate(.8) contrast(.88) brightness(1.06); box-shadow: 0 30px 60px rgba(0, 0, 0, .5); }
-.cmp-glare { position: absolute; inset: 0; background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, .22) 45%, transparent 60%); pointer-events: none; }
 .cmp-line { position: absolute; top: 0; bottom: 0; left: var(--x); width: 2px; margin-left: -1px; background: #fff; pointer-events: none; }
 .cmp-line::after { content: ""; position: absolute; top: 50%; left: 50%; width: 36px; height: 36px; margin: -18px 0 0 -18px; border-radius: 50%; background: #fff; box-shadow: 0 2px 10px rgba(0, 0, 0, .4); }
 .cmp-tag { position: absolute; top: 12px; padding: 5px 10px; border-radius: 999px; background: rgba(0, 0, 0, .65); font-size: 13px; pointer-events: none; }
@@ -670,8 +667,10 @@ html.feat-open { overflow: hidden; }
 .cmp:has(.cmp-r:focus-visible) { outline: 2px solid var(--yellow); outline-offset: 3px; }
 .loupes { display: grid; grid-template-columns: repeat(2, minmax(0, 220px)); gap: 14px; margin-top: 14px; }
 .loupes figure { margin: 0; }
-.lp { aspect-ratio: 1; border-radius: 50%; background-size: 900% auto; background-position: 38% 58%; background-repeat: no-repeat; border: 2px solid var(--line); }
-.lp-lo { filter: blur(.6px) saturate(.85); }
+/* the same spot of the painting in both: zoom and position worked out for each image */
+.lp { aspect-ratio: 1; border-radius: 50%; background-repeat: no-repeat; border: 2px solid var(--line); background-color: #222; }
+.lp-hi { background-size: 900% auto; background-position: var(--hx, 4%) var(--hy, 37%); }
+.lp-lo { background-size: 1150% auto; background-position: var(--lx, 19%) var(--ly, 37%); }
 .loupes figcaption { margin-top: 8px; font-size: 13px; color: var(--mute); text-align: center; }
 
 .fs-why { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
@@ -687,7 +686,8 @@ html.feat-open { overflow: hidden; }
 .fs-steps-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .fs-step { position: relative; background: #121212; border-radius: 18px; padding: 16px; }
 .fs-sn { position: absolute; top: 14px; right: 16px; color: var(--gc); font-size: 15px; }
-.fs-ic { display: block; margin-bottom: 12px; fill: none; stroke: var(--gc); stroke-width: 1.5; stroke-linejoin: round; }
+.fs-ic { display: block; width: 128px; height: auto; margin: -6px 0 8px -10px; }
+.flow .fs-ic { width: 96px; margin: -4px 0 4px -8px; }
 
 .fs-dec { margin-top: 26px; }
 .fs-dec:first-of-type { margin-top: 0; }
@@ -745,3 +745,13 @@ html.feat-open { overflow: hidden; }
 .fs-fmt-h h4 { margin: 0; font-size: 24px; color: var(--fg); }
 .fs-fmt-h p { grid-column: 2; margin: 0; color: var(--mute); font-size: 15px; }
 .fs-tag { grid-row: span 2; align-self: start; padding: 6px 12px; border-radius: 999px; background: var(--gc); color: #000; font-size: 16px; }
+/* photo and scan side by side: column widths 3:4 give both pictures the same height */
+.cmp2 { display: grid; grid-template-columns: 3fr 4fr; gap: 18px 18px; margin-top: 32px; }
+.cmp2 figure { margin: 0; }
+.cmp2 img { display: block; width: 100%; height: auto; border-radius: 14px; background: #1a1a1a; }
+.cmp2 figcaption { margin-top: 10px; color: #cfcfcf; font-size: 14px; line-height: 1.4; }
+.cmp2 figcaption b { display: block; font-weight: 400; color: var(--fg); font-size: 17px; margin-bottom: 2px; }
+.c2-lp { display: flex; flex-direction: column; align-items: center; }
+.c2-lp .lp { width: min(220px, 100%); }
+.c2-lp figcaption { text-align: center; color: var(--mute); }
+@media (max-width: 600px) { .cmp2 { grid-template-columns: 1fr 1fr; } .c2-photo, .c2-scan { grid-column: 1 / -1; } }
