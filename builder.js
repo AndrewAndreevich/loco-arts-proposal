@@ -341,7 +341,6 @@
   function slideTo(api, id, smooth = true) {
     const sl = api.track.querySelector(`.slide[data-id="${id}"]`);
     if (!sl) return;
-    seen(api, id);
     api.track.scrollTo({ left: sl.offsetLeft - (api.track.clientWidth - sl.offsetWidth) / 2, behavior: smooth && !reduce ? 'smooth' : 'auto' });
     setActive(api, id);
   }
@@ -363,7 +362,7 @@
           const d = Math.abs(s.offsetLeft + s.offsetWidth / 2 - mid);
           if (d < dist) { dist = d; best = s.dataset.id; }
         });
-        if (best && best !== api.active) { seen(api, best); setActive(api, best); } else placeArrows(api);
+        if (best && best !== api.active) { setActive(api, best); seen(api, best); } else placeArrows(api);
       });
     }, { passive: true });
     const step = (dir) => {
@@ -565,18 +564,17 @@
   // ---------- running tally of hours and services ----------
   // Scrolling past a group adds the whole group. Moving through its carousel instead adds only the
   // screens actually viewed, plus options the visitor picks; such a group is never added in bulk later.
-  const counted = {}; // group id -> 'all' | Set of viewed screen ids
+  const counted = {}; // group id -> true once its carousel was used: count screens up to the current card
   const picked = new Set(); // decision keys chosen by the visitor
   const gidOf = (api) => api.sec.id.slice(2);
   function seen(api, id) {
     const gid = gidOf(api);
     if (!D.groups.some((g) => g.id === gid)) return; // the work plan does not count hours
-    if (id.startsWith('dec:')) return;
-    if (passed[gid] && !(counted[gid] instanceof Set)) return; // already counted whole by scrolling past
-    if (!counted[gid]) counted[gid] = new Set([api.active]);
-    counted[gid].add(id);
+    if (passed[gid] && !counted[gid]) return; // already counted whole by scrolling past
+    counted[gid] = true;
     update();
   }
+
 
   const out = { hours: document.getElementById('c-hours'), monthly: document.getElementById('c-monthly') };
   const servicesEl = document.getElementById('services');
@@ -625,7 +623,15 @@
       document.getElementById('g-' + g.id).querySelector('.grp-meta').textContent =
         `${gs ? `${gs} ${gs === 1 ? 'screen' : 'screens'} · ` : ''}${gh} h`;
 
-      const c = counted[g.id] instanceof Set ? (reached[g.id] ? counted[g.id] : null) : (passed[g.id] ? 'all' : null);
+      let c = null;
+      if (counted[g.id]) {
+        if (reached[g.id] && api) {
+          const order = [...api.track.querySelectorAll('.slide')].filter((x) => !x.hidden).map((x) => x.dataset.id);
+          const upto = order.indexOf(api.active);
+          c = new Set(order.slice(0, upto + 1));
+          if (api.active.startsWith('dec:')) order.forEach((id) => c.add(id));
+        }
+      } else if (passed[g.id]) c = 'all';
       if (c === 'all') {
         hours += gh;
         (g.services || []).forEach((x) => svc.add(x));
@@ -660,12 +666,16 @@
   // the tally follows the scroll position: a group counts once you have scrolled into / past it,
   // and stops counting when you scroll back above it
   const reached = {}; const passed = {};
+  const calcBar = document.querySelector('.calc');
+  const barTop = () => (calcBar ? calcBar.getBoundingClientRect().top : window.innerHeight);
   function measure() {
     let changed = false;
-    groups.forEach(({ g }) => {
+    const line = barTop();
+    groups.forEach(({ g }, i) => {
       const r = document.getElementById('g-' + g.id).getBoundingClientRect();
-      const line = window.innerHeight * 0.55;
-      const re = r.top < line; const pa = r.bottom < line;
+      // a group starts at its divider line and ends at the next group's divider line
+      const next = groups[i + 1] ? document.getElementById('g-' + groups[i + 1].g.id).getBoundingClientRect().top : r.bottom;
+      const re = r.top < line; const pa = next < line;
       if (re !== !!reached[g.id] || pa !== !!passed[g.id]) { reached[g.id] = re; passed[g.id] = pa; changed = true; }
     });
     return changed;
@@ -681,9 +691,9 @@
     state[e.target.name] = e.target.value;
     const gid = e.target.name.split('.')[0];
     picked.add(e.target.name);
-    if (!(counted[gid] instanceof Set) && !passed[gid]) {
+    if (!counted[gid] && !passed[gid]) {
       const gr = groups.find((x) => x.g.id === gid);
-      counted[gid] = new Set(gr && gr.api ? [gr.api.active] : []);
+      counted[gid] = true;
     }
     update();
   });
