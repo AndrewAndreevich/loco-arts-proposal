@@ -81,15 +81,19 @@ BUILDER = """
 <section id=report class=report aria-label="Cost summary"></section>
 <section class=builder-2><div class=wrap>
 <div id=plan></div>
+<div class=export id=export><p class=kicker>Export</p><p class=big>Your selection first, then the three tiers side by side and a sheet for each: prices, hours, screens, options, services and weeks.</p>
+<div class=exp-row><button type=button class=cta data-exp=xlsx>Download Excel (.xlsx)</button><button type=button class="cta cta-2" data-exp=csv>Download CSV</button></div></div>
 <noscript><p class=big>The tier builder needs JavaScript. The full proposal follows below.</p></noscript>
 </div></section>
 <div class=calc role=region aria-label="Running tally"><div class=calc-in>
 <span class=c-cell><span class=c-l>Hours</span><span id=c-hours class=c-v aria-live=polite>0</span></span>
 <span class=c-cell><span class=c-l>Screens</span><span id=c-screens class=c-v>0</span></span>
 <span class=c-cell><span class=c-l>Services</span><span id=c-monthly class=c-v>—</span></span>
+<span class=c-set id=c-set aria-live=polite></span>
 </div></div>
 """
 src = src.replace(strip, "")
+src = src.replace('<a class=cta href="#prices">Choose a tier</a>', "")
 # put the marquee after the hero's first block (title + lede)
 src = src.replace("</p>\n</div>\n<div>\n\n<div class=meta>", "</p>\n</div>\n<div>\n<div class=meta>", 1)
 src = re.sub(r"(<p class=lede data-split>.*?</p>\n</div>)", r"\1\n" + marquee.replace("\\", "\\\\"), src, count=1, flags=re.S)

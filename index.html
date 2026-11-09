@@ -8,7 +8,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Crect width=%27100%27 height=%2756%27 y=%2722%27 rx=%2728%27 fill=%27%23FF54A6%27/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://framerusercontent.com" crossorigin>
 <link rel="preload" href="https://framerusercontent.com/assets/5uijHrcLgMOtvBU399PIdv0X2Yo.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="styles.css?v=4e42fc08">
+<link rel="stylesheet" href="styles.css?v=ce9cc354">
 <meta name="theme-color" content="#000000">
 </head>
 <body>
@@ -49,12 +49,15 @@
 <section id=report class=report aria-label="Cost summary"></section>
 <section class=builder-2><div class=wrap>
 <div id=plan></div>
+<div class=export id=export><p class=kicker>Export</p><p class=big>Your selection first, then the three tiers side by side and a sheet for each: prices, hours, screens, options, services and weeks.</p>
+<div class=exp-row><button type=button class=cta data-exp=xlsx>Download Excel (.xlsx)</button><button type=button class="cta cta-2" data-exp=csv>Download CSV</button></div></div>
 <noscript><p class=big>The tier builder needs JavaScript. The full proposal follows below.</p></noscript>
 </div></section>
 <div class=calc role=region aria-label="Running tally"><div class=calc-in>
 <span class=c-cell><span class=c-l>Hours</span><span id=c-hours class=c-v aria-live=polite>0</span></span>
 <span class=c-cell><span class=c-l>Screens</span><span id=c-screens class=c-v>0</span></span>
 <span class=c-cell><span class=c-l>Services</span><span id=c-monthly class=c-v>—</span></span>
+<span class=c-set id=c-set aria-live=polite></span>
 </div></div>
 
 <details class="prop " id=d-approach><summary class=prop-sum><span class=wrap><span class=prop-k>How we read the brief</span><span class=prop-t>One platform, three levels of ambition</span><span class=prop-pl aria-hidden=true></span></span></summary>
@@ -191,13 +194,13 @@
 <div class=mem><img src="assets/andrei-aranovich.jpg" alt="Andrei Aranovich" width=700 height=700 loading=lazy decoding=async><p class=role>Tech lead · full-stack · backend</p><h3>Andrei Aranovich</h3><span class=loc>Tbilisi, Georgia</span><ul><li>Fastify / PostgreSQL platforms, Georgian payments (TBC / BOG)</li><li>Architecture, CMS, Artwork Archive sync, security</li><li>Photogrammetry and Gaussian Splatting</li></ul></div>
 <div class=mem><img src="assets/kirill-pavliashik.jpg" alt="Kirill Pavliashik" width=700 height=700 loading=lazy decoding=async><p class=role>Frontend developer</p><h3>Kirill Pavliashik</h3><a href="https://kirpa-dev.vercel.app/" target=_blank rel=noopener>kirpa-dev.vercel.app ↗</a><ul><li>Next.js, TypeScript, Three.js / WebGL, GSAP</li><li>Responsive build, performance, accessibility</li><li>Motion and 3D viewer integration</li></ul></div>
 </div>
-<a class=cta href="#prices">Choose a tier</a>
+
 </div></section>
 </main>
 <footer><span>LOCO Arts — website proposal, November 2026</span><span>LOCO Park, 84 David Guramishvili Avenue, Tbilisi</span></footer>
 <script src="data/tiers.js?v=00b6c3e5" defer></script>
 <script src="data/pages-desc.js?v=e5ec7905" defer></script>
-<script src="builder.js?v=70148e02" defer></script>
+<script src="builder.js?v=680d9f0a" defer></script>
 <script src="main.js?v=1a032fc3" defer></script>
 </body>
 </html>

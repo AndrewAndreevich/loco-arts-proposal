@@ -4,6 +4,10 @@
 // (3) option choices per tier. A fixed bar shows the live estimate.
 (() => {
   const D = window.LOCO_DATA;
+  D.groups.forEach((g) => g.decisions.forEach((d) => {
+    const i = d.choices.findIndex((c) => c.tiers.includes('E'));
+    if (i > 0) d.choices.unshift(d.choices.splice(i, 1)[0]);
+  }));
   const DESC = window.LOCO_DESC || {};
   const root = document.getElementById('groups');
   if (!D || !root) return;
@@ -711,6 +715,7 @@
 
   function renderReport(all) {
     if (!reportEl) return;
+    const curTier = matchingTier();
     let hours = 0; let screens = 0;
     const svc = new Set();
     const rows = all.map(({ g, t }, i) => {
@@ -724,13 +729,14 @@
     reportEl.innerHTML = `<div class=wrap>
       <p class=kicker>Summary · 1 of 2</p>
       <h2 class=rep-h>Cost</h2>
+      <div class=set-sw role=group aria-label="Which set to count">${setButtons()}</div>
       <div class=rep-tally>
         <span class=c-cell><span class=c-l>Hours</span><span class=rt-v data-k=hours>${hours} h</span></span>
         <span class=c-cell><span class=c-l>Screens</span><span class=rt-v data-k=screens>${screens}</span></span>
         <span class=c-cell><span class=c-l>Services</span><span class=rt-v data-k=monthly>${svc.size ? `${range(lo, hi)} / mo` : '—'}</span></span>
       </div>
       <div class=rep-big>
-        <div><p class=rb-l>Design, development and support</p><p class=rb-v>${money(dev)}</p><p class=rb-s>${hours} h × ${money(D.rate)} · ${screens} screens</p></div>
+        <div><p class=rb-l>Design, development and support</p><p class=rb-v>${money(dev)}</p><p class=rb-s>${hours} h × ${money(D.rate)} · ${screens} screens${curTier ? ` · ${curTier.name} in the proposal: ${money(curTier.price)}, ${curTier.weeks} weeks` : ''}</p></div>
         <div><p class=rb-l>Services, first year</p><p class=rb-v>${range(lo * 12, hi * 12)}</p><p class=rb-s>twelve months of the services above</p></div>
         <div class=rb-tot><p class=rb-l>Total for the first year</p><p class=rb-v>${range(dev + lo * 12, dev + hi * 12)}</p><p class=rb-s>work plus twelve months of services</p></div>
       </div>
@@ -739,13 +745,26 @@
           <tbody>${rows}</tbody><tfoot><tr><td></td><td>Total</td><td class=rs>${screens}</td><td class=rh>${hours} h</td><td class=rd>${money(dev)}</td></tr></tfoot></table></div>
         <div><p class=r-h>Services, per month</p>${svcRows || '<p class=r-row><span>No paid services</span><span>—</span></p>'}
           <p class="r-row r-tot"><span>Total</span><span>${range(lo, hi)} / mo</span></p></div>
-      </div>
-      <div class=rep-exp><span class=c-l>Export: your selection first, then the three tiers with prices, hours and weeks</span>
-        <button type=button class=exp-b data-exp=xlsx>Excel (.xlsx)</button>
-        <button type=button class=exp-b data-exp=csv>CSV</button></div></div>`;
+      </div></div>`;
   }
 
   let reportSig = '';
+  // the set being counted: one of the tiers, or a custom selection (kept so you can switch back to it)
+  let custom = null;
+  const CUSTOM_ICON = '<svg class=set-ic viewBox="0 0 14 14" width=14 height=14 aria-hidden=true><path d="M1 3.5h7M11 3.5h2M1 10.5h2M6 10.5h7"/><circle cx="9.5" cy="3.5" r="1.6"/><circle cx="4.5" cy="10.5" r="1.6"/></svg>';
+  const setBadge = () => {
+    const t = matchingTier();
+    return t ? `<i class=set-dot style="background:var(--${t.color})"></i><span class=set-n>${t.name}</span>` : `${CUSTOM_ICON}<span class=set-n>Custom</span>`;
+  };
+  function setButtons() {
+    const t = matchingTier();
+    const sum = (st) => D.groups.reduce((a, g) => a + groupTotal(g, st).h, 0);
+    const btn = (id, label, sub, on, dis, color) => `<button type=button class=set-b data-set="${id}" aria-pressed="${on}"${dis ? ' disabled' : ''}${color ? ` style="--sc:var(--${color})"` : ''}>
+      <span class=sb-l>${id === 'custom' ? CUSTOM_ICON : `<i class=set-dot></i>`}${label}</span><span class=sb-s>${sub}</span></button>`;
+    const cst = !t ? state : custom;
+    return btn('custom', 'Custom', cst ? `${sum(cst)} h · ${money(sum(cst) * D.rate)}` : 'pick options above', !t, !cst, null)
+      + D.tiers.map((x) => btn(x.id, x.name, `${sum(defaults(x.id))} h · ${money(x.price)}`, !!t && t.id === x.id, false, x.color)).join('');
+  }
   let lastAll = [];
   function update() {
     let hours = 0; let screens = 0;
@@ -773,6 +792,8 @@
     const [lo, hi] = svcRange(svc);
     roll(out.hours, `${hours} h`, hours);
     roll(out.screens, String(screens), screens);
+    const badge = document.getElementById('c-set');
+    if (badge) { const h = setBadge(); if (badge.innerHTML !== h) badge.innerHTML = h; }
     roll(out.monthly, svc.size ? `${range(lo, hi)} / mo` : '—', lo);
     const sig = JSON.stringify(state);
     lastAll = all;
@@ -845,6 +866,16 @@
       setTimeout(() => { a.style.visibility = ''; if (!dock) b.style.visibility = ''; }, dur + 20);
     });
   }
+
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-set]');
+    if (!b || b.disabled) return;
+    const id = b.dataset.set;
+    if (!matchingTier()) custom = { ...state };
+    if (id === 'custom') { if (custom) Object.assign(state, custom); } else Object.assign(state, defaults(id));
+    update(); measure(); update();
+    const nb = document.querySelector(`[data-set="${id}"]`); if (nb) nb.focus({ preventScroll: true });
+  });
 
   // ---------- export the summary: Excel workbook or CSV ----------
   // one complete set (a selection of options): totals, groups, options, services, weeks
@@ -975,6 +1006,7 @@
   root.addEventListener('change', (e) => {
     if (e.target.type !== 'radio') return;
     state[e.target.name] = e.target.value;
+    if (!matchingTier()) custom = { ...state };
     update();
     measure();
   });
@@ -986,7 +1018,7 @@
 
   // ---------- jump arrows top-right: section to section, or straight to the top / bottom ----------
   const jumpTargets = () => [document.getElementById('top'), document.getElementById('builder'),
-    ...document.querySelectorAll('#groups > .grp, #report, #g-plan, details.prop, #team')].filter(Boolean);
+    ...document.querySelectorAll('#groups > .grp, #report, #g-plan, #export, details.prop, #team')].filter(Boolean);
   const scrollToEl = (el) => window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 12, behavior: reduce ? 'auto' : 'smooth' });
   document.querySelectorAll('[data-jump]').forEach((btn) => btn.addEventListener('click', () => {
     const k = btn.dataset.jump;
