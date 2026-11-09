@@ -19,6 +19,10 @@
   const tierById = Object.fromEntries(D.tiers.map((t) => [t.id, t]));
   const state = {};
   const key = (g, d) => `${g.id}.${d.id}`;
+  let picked = new Set();
+  let pickedCustom = new Set();
+  // a picked decision brings the decisions that depend on it (who scans, processing) along as picked
+  const isPicked = (g, d) => picked.has(key(g, d)) || (!!d.dependsOn && picked.has(`${g.id}.${d.dependsOn}`));
   // PVF Scan volume and processing mode, set in the feature presentation
   const SC = D.scan || {};
   const scanCfg = { n: SC.perMonth || 20, mode: 'night' };
@@ -795,7 +799,7 @@
     let oh = 0; const osvc = new Set();
     const rows = [];
     all.forEach(({ g, t }) => t.choices.forEach(({ d, c, off }) => {
-      if (off || !(c.hours > 0 || (c.services || []).length || (c.pages || []).length)) return;
+      if (off || !isPicked(g, d) || !(c.hours > 0 || (c.services || []).length || (c.pages || []).length)) return;
       const own = new Set(c.services || []); const [a1, b1] = svcRange(own);
       oh += c.hours; own.forEach((x) => osvc.add(x));
       rows.push(`<tr style="--gc:var(--${g.color})"><td class=rn>${esc(g.name)}</td><td>${esc(d.label)}: <b>${esc(c.label)}</b></td>
@@ -810,10 +814,10 @@
     return `<div class=rep-2>
       <p class=kicker>Summary · 2 of 3</p>
       <h2 class=rep-h>Options and extras</h2>
-      <p class=rep-lead>What the chosen options add on top of the standard screens. They are already counted in the cost above; here they are by name.</p>
+      <p class=rep-lead>The options picked in the builder, by name. They are already counted in the cost above; anything not picked is part of the standard set.</p>
       ${rows.length ? `<table class="rep-t rep-o"><thead><tr><th>Group</th><th>Option</th><th class=rh>Hours</th><th class=rd>Cost</th><th class=rs>Services</th></tr></thead>
         <tbody>${rows.join('')}</tbody><tfoot><tr><td></td><td>All options</td><td class=rh>+${oh} h</td><td class=rd>${money(oh * D.rate)}</td><td class=rs>${osvc.size ? `${range(ol, ohi)} / mo` : '—'}</td></tr></tfoot></table>`
-        : '<p class=r-row><span>No options that add work or services</span><span>—</span></p>'}
+        : '<p class=r-row><span>No options picked: the standard set</span><span>—</span></p>'}
       ${eq}
     </div>`;
   }
@@ -865,14 +869,21 @@
       }
       const sec = document.getElementById('g-' + g.id);
       // standard: the group's own screens and services; then each chosen option on its own row
-      const baseSvc = new Set(g.services || []);
+      // picked options get their own rows; everything else (the standard screens and the default options) is the first row
+      const mine = t.choices.filter(({ d, c, off }) => !off && isPicked(g, d) && (c.hours > 0 || (c.services || []).length || (c.pages || []).length));
+      const minePages = new Set(); const mineSvc = new Set(); let mineH = 0;
+      mine.forEach(({ c }) => { mineH += c.hours; (c.pages || []).forEach((x) => minePages.add(x.id)); (c.services || []).forEach((x) => mineSvc.add(x)); });
+      const otherSvc = new Set(g.services || []);
+      t.choices.forEach(({ c, off }) => { if (!off && !mine.some((m) => m.c === c)) (c.services || []).forEach((x) => otherSvc.add(x)); });
+      const baseSvc = new Set([...t.svc].filter((x) => otherSvc.has(x) || !mineSvc.has(x)));
+      const baseScreens = [...t.active.keys()].filter((id) => !minePages.has(id)).length;
       const [bl, bh] = svcRange(baseSvc);
       const base = sec.querySelector('.gf-base');
-      base.querySelector('.gf-h').textContent = `+${g.hours} h`;
-      base.querySelector('.gf-s').textContent = g.pages.length ? `+${g.pages.length}` : '—';
+      base.querySelector('.gf-h').textContent = `+${t.h - mineH} h`;
+      base.querySelector('.gf-s').textContent = baseScreens ? `+${baseScreens}` : '—';
       base.querySelector('.gf-m').textContent = baseSvc.size ? `+${range(bl, bh)} / mo` : '—';
       base.querySelector('.gf-tag').textContent = g.pages.length ? 'Standard screens' : 'Standard work';
-      const optRows = t.choices.filter(({ off, c }) => !off && (c.hours > 0 || (c.services || []).length || (c.pages || []).length)).map(({ d, c }) => {
+      const optRows = mine.map(({ d, c }) => {
         const own = new Set(c.services || []);
         const [ol, oh] = svcRange(own);
         const n = (c.pages || []).length;
@@ -893,7 +904,7 @@
     const badge = document.getElementById('c-set');
     if (badge) { const h = setBadge(); if (badge.innerHTML !== h) badge.innerHTML = h; }
     roll(out.monthly, svc.size ? `${range(lo, hi)} / mo` : '—', lo);
-    const sig = JSON.stringify([state, scanCfg]);
+    const sig = JSON.stringify([state, scanCfg, [...picked]]);
     lastAll = all;
     if (sig !== reportSig) { reportSig = sig; renderReport(all); }
     const t = matchingTier();
@@ -977,7 +988,7 @@
     if (!b || b.disabled) return;
     const id = b.dataset.set;
     if (!matchingTier()) custom = { ...state };
-    if (id === 'custom') { if (custom) Object.assign(state, custom); } else Object.assign(state, defaults(id));
+    if (id === 'custom') { if (custom) Object.assign(state, custom); picked = new Set(pickedCustom); } else { Object.assign(state, defaults(id)); picked = new Set(); }
     update(); measure(); update();
     const nb = document.querySelector(`[data-set="${id}"]`); if (nb) nb.focus({ preventScroll: true });
   });
@@ -1141,6 +1152,8 @@
   function onPick(e) {
     if (e.target.type !== 'radio' || !(e.target.name in state)) return;
     state[e.target.name] = e.target.value;
+    picked.add(e.target.name);
+    if (!matchingTier()) pickedCustom = new Set(picked);
     if (!matchingTier()) custom = { ...state };
     update();
     measure();
