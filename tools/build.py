@@ -82,7 +82,8 @@ BUILDER = """
 <section class=builder-2><div class=wrap>
 <div id=plan></div>
 <div class=export id=export><p class=kicker>Export</p><p class=big>Your selection first, then the three tiers side by side and a sheet for each: prices, hours, screens, options, services and weeks.</p>
-<div class=exp-row><button type=button class=cta data-exp=xlsx>Download Excel (.xlsx)</button><button type=button class="cta cta-2" data-exp=csv>Download CSV</button></div></div>
+<div class=exp-row><button type=button class=cta data-exp=xlsx>Download Excel (.xlsx)</button><button type=button class="cta cta-2" data-exp=csv>Download CSV</button></div>
+<div class=exp-ai><button type=button class="cta cta-3" data-exp=md>Download Markdown (.md)</button><p>Share this with your AI agent: the same summary as plain text it can read and work with.</p></div></div>
 <noscript><p class=big>The tier builder needs JavaScript. The full proposal follows below.</p></noscript>
 </div></section>
 <div class=calc role=region aria-label="Running tally"><div class=calc-in>
@@ -119,6 +120,12 @@ for alt, slug in names.items():
         src,
     )
 assert "base64" not in src, "a photo was not replaced"
+# Kirill is not on this team; the closing logo sits under the team
+src, n = re.subn(r'<div class=mem><img src="assets/kirill-pavliashik\.jpg".*?</div>\n?', '', src, flags=re.S)
+assert n == 1, "Kirill's card not found"
+src = src.replace('<div class="team reveal">', '<div class="team team-2 reveal">', 1)
+src = src.replace("</div></section>\n</main>", "</div></section>\n<div class=end-logo aria-hidden=true>" + LOGO + "</div>\n</main>", 1)
+assert "end-logo" in src
 
 # --- footer outside main with grid; script
 src = src.replace("<footer><div class=wrap>", "<footer>").replace("</span></div></footer>", "</span></footer>")

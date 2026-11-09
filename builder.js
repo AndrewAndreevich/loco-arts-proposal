@@ -751,7 +751,7 @@
   let reportSig = '';
   // the set being counted: one of the tiers, or a custom selection (kept so you can switch back to it)
   let custom = null;
-  const CUSTOM_ICON = '<svg class=set-ic viewBox="0 0 14 14" width=14 height=14 aria-hidden=true><path d="M1 3.5h7M11 3.5h2M1 10.5h2M6 10.5h7"/><circle cx="9.5" cy="3.5" r="1.6"/><circle cx="4.5" cy="10.5" r="1.6"/></svg>';
+  const CUSTOM_ICON = '<i class="set-dot set-custom"></i>';
   const setBadge = () => {
     const t = matchingTier();
     return t ? `<i class=set-dot style="background:var(--${t.color})"></i><span class=set-n>${t.name}</span>` : `${CUSTOM_ICON}<span class=set-n>Custom</span>`;
@@ -828,42 +828,48 @@
   let flying = [];
   function flyNumbers(dock) {
     const tally = reportEl.querySelector('.rep-tally');
-    const pairs = Object.entries(out).map(([k, el]) => [el, tally.querySelector(`[data-k=${k}]`)]).filter(([a, b]) => a && b);
+    const pairs = Object.entries(out).map(([k, el]) => [el, tally.querySelector(`[data-k=${k}]`)]).filter(([x, y]) => x && y);
     flying.forEach((f) => f.stop());
     flying = [];
     if (reduce) {
       calcBar.classList.toggle('docked', dock);
-      pairs.forEach(([, b]) => { b.style.visibility = ''; });
+      pairs.forEach(([x, y]) => { x.style.visibility = ''; y.style.visibility = ''; });
       return;
     }
-    const barRects = pairs.map(([a]) => a.getBoundingClientRect());
+    // where the bar sits when it is shown (it may be slid away right now)
+    const shift = () => { const t = new DOMMatrixReadOnly(getComputedStyle(calcBar).transform); return t.m42 || 0; };
+    const barRect = (el) => { const r = el.getBoundingClientRect(); const dy = shift(); return { left: r.left, top: r.top - dy }; };
+    const starts = pairs.map(([x]) => barRect(x)); // before the bar moves
     calcBar.classList.toggle('docked', dock);
-    pairs.forEach(([a, b], i) => {
-      const from = barRects[i];
-      const fs0 = parseFloat(getComputedStyle(a).fontSize); const fs1 = parseFloat(getComputedStyle(b).fontSize);
+    const dur = 650; const t0 = performance.now();
+    const ease = (x) => 1 - Math.pow(1 - x, 3);
+    pairs.forEach(([x, y], i) => {
+      const fs0 = parseFloat(getComputedStyle(x).fontSize); const fs1 = parseFloat(getComputedStyle(y).fontSize);
       const clone = document.createElement('span');
       clone.className = 'fly-num';
-      clone.textContent = b.textContent;
+      clone.textContent = y.textContent;
       clone.style.fontSize = fs1 + 'px';
+      clone.style.transform = 'translate(-9999px, 0)';
       document.body.appendChild(clone);
-      b.style.visibility = 'hidden';
-      const t0 = performance.now(); const dur = 650; let raf = 0;
-      const ease = (x) => 1 - Math.pow(1 - x, 3);
+      x.style.visibility = 'hidden'; y.style.visibility = 'hidden';
+      let raf = 0; let done = false;
+      const finish = () => {
+        if (done) return; done = true;
+        cancelAnimationFrame(raf); clone.remove();
+        x.style.visibility = ''; y.style.visibility = '';
+      };
       const frame = (now) => {
         const k = Math.min(1, (now - t0) / dur); const e = ease(k);
-        const to = b.getBoundingClientRect(); // follows the page while it scrolls
-        // dock: bar -> page; undock: page -> bar
-        const [p0, p1, s0, s1] = dock ? [from, to, fs0 / fs1, 1] : [to, from, 1, fs0 / fs1];
-        const x = p0.left + (p1.left - p0.left) * e; const y = p0.top + (p1.top - p0.top) * e;
-        clone.style.transform = `translate(${x}px, ${y}px) scale(${s0 + (s1 - s0) * e})`;
-        if (k < 1) raf = requestAnimationFrame(frame); else stop();
+        const page = y.getBoundingClientRect(); // follows the page while it scrolls
+        // going back the target is where the bar will rest, measured live while it slides up
+        const bar = dock ? starts[i] : barRect(x);
+        const [p0, p1, s0, s1] = dock ? [bar, page, fs0 / fs1, 1] : [page, bar, 1, fs0 / fs1];
+        const px = p0.left + (p1.left - p0.left) * e; const py = p0.top + (p1.top - p0.top) * e;
+        clone.style.transform = `translate(${px}px, ${py}px) scale(${s0 + (s1 - s0) * e})`;
+        if (k < 1) raf = requestAnimationFrame(frame); else finish();
       };
-      const stop = () => { cancelAnimationFrame(raf); clone.remove(); b.style.visibility = dock ? '' : 'hidden'; };
-      if (!dock) a.style.visibility = 'hidden';
-      const stopAll = () => { stop(); a.style.visibility = ''; if (!dock) b.style.visibility = ''; };
-      flying.push({ stop: stopAll });
-      raf = requestAnimationFrame(frame);
-      setTimeout(() => { a.style.visibility = ''; if (!dock) b.style.visibility = ''; }, dur + 20);
+      frame(performance.now());
+      flying.push({ stop: finish });
     });
   }
 
@@ -978,6 +984,32 @@
     const b = e.target.closest('[data-exp]');
     if (!b) return;
     const sheets = exportSheets();
+    if (b.dataset.exp === 'md') {
+      const cell = (v) => String(v === null || v === undefined ? '' : v).replace(/\|/g, '\\|');
+      const md = ['# LOCO Arts — tier builder export', '',
+        '> Generated from the LOCO Arts tier builder. Share this file with your AI agent: it holds the selected set, the three tiers, every option with hours, services and the week-by-week plan.', ''];
+      sheets.forEach(([n, rows]) => {
+        md.push(`## ${n}`, '');
+        let table = [];
+        const flush = () => {
+          if (!table.length) return;
+          if (table[0].some((v) => typeof v === 'number')) table.unshift(table[0].map((_, i) => (i === 0 ? 'Item' : i === 1 ? 'Value' : '')));
+          const w = Math.max(...table.map((r) => r.length));
+          const pad = (r) => Array.from({ length: w }, (_, i) => cell(r[i]));
+          md.push(`| ${pad(table[0]).join(' | ')} |`, `|${' --- |'.repeat(w)}`, ...table.slice(1).map((r) => `| ${pad(r).join(' | ')} |`), '');
+          table = [];
+        };
+        rows.forEach((r) => {
+          const vals = r.filter((v) => v !== '' && v !== null && v !== undefined);
+          if (!vals.length) { flush(); return; }
+          if (vals.length === 1 && r.length <= 2 && !table.length) { md.push(`**${cell(vals[0])}**`, ''); return; }
+          table.push(r);
+        });
+        flush();
+      });
+      save(new Blob([md.join('\n')], { type: 'text/markdown;charset=utf-8' }), 'loco-arts-summary.md');
+      return;
+    }
     if (b.dataset.exp === 'csv') {
       const text = sheets.map(([n, rows]) => [[`=== ${n} ===`], ...rows].map((row) => row.map(csvCell).join(',')).join('\r\n')).join('\r\n\r\n');
       save(new Blob(['﻿' + text], { type: 'text/csv;charset=utf-8' }), 'loco-arts-summary.csv');

@@ -8,7 +8,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Crect width=%27100%27 height=%2756%27 y=%2722%27 rx=%2728%27 fill=%27%23FF54A6%27/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://framerusercontent.com" crossorigin>
 <link rel="preload" href="https://framerusercontent.com/assets/5uijHrcLgMOtvBU399PIdv0X2Yo.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="styles.css?v=ce9cc354">
+<link rel="stylesheet" href="styles.css?v=b09498cb">
 <meta name="theme-color" content="#000000">
 </head>
 <body>
@@ -50,7 +50,8 @@
 <section class=builder-2><div class=wrap>
 <div id=plan></div>
 <div class=export id=export><p class=kicker>Export</p><p class=big>Your selection first, then the three tiers side by side and a sheet for each: prices, hours, screens, options, services and weeks.</p>
-<div class=exp-row><button type=button class=cta data-exp=xlsx>Download Excel (.xlsx)</button><button type=button class="cta cta-2" data-exp=csv>Download CSV</button></div></div>
+<div class=exp-row><button type=button class=cta data-exp=xlsx>Download Excel (.xlsx)</button><button type=button class="cta cta-2" data-exp=csv>Download CSV</button></div>
+<div class=exp-ai><button type=button class="cta cta-3" data-exp=md>Download Markdown (.md)</button><p>Share this with your AI agent: the same summary as plain text it can read and work with.</p></div></div>
 <noscript><p class=big>The tier builder needs JavaScript. The full proposal follows below.</p></noscript>
 </div></section>
 <div class=calc role=region aria-label="Running tally"><div class=calc-in>
@@ -189,18 +190,27 @@
 <section id=team><div class=wrap>
 <p class=kicker>Who builds it</p>
 <h2 data-split>Team</h2>
-<div class="team reveal">
+<div class="team team-2 reveal">
 <div class=mem><img src="assets/lena-shkolnaya.jpg" alt="Lena Shkolnaya" width=700 height=700 loading=lazy decoding=async><p class=role>Design lead · UI / UX · art direction</p><h3>Lena Shkolnaya</h3><a href="https://shkoln.xyz" target=_blank rel=noopener>shkoln.xyz ↗</a><ul><li>Multidisciplinary designer: websites, identities, illustration</li><li>Visual concept, all screens, design system</li><li>Georgian / Latin typography, motion design</li></ul></div>
 <div class=mem><img src="assets/andrei-aranovich.jpg" alt="Andrei Aranovich" width=700 height=700 loading=lazy decoding=async><p class=role>Tech lead · full-stack · backend</p><h3>Andrei Aranovich</h3><span class=loc>Tbilisi, Georgia</span><ul><li>Fastify / PostgreSQL platforms, Georgian payments (TBC / BOG)</li><li>Architecture, CMS, Artwork Archive sync, security</li><li>Photogrammetry and Gaussian Splatting</li></ul></div>
-<div class=mem><img src="assets/kirill-pavliashik.jpg" alt="Kirill Pavliashik" width=700 height=700 loading=lazy decoding=async><p class=role>Frontend developer</p><h3>Kirill Pavliashik</h3><a href="https://kirpa-dev.vercel.app/" target=_blank rel=noopener>kirpa-dev.vercel.app ↗</a><ul><li>Next.js, TypeScript, Three.js / WebGL, GSAP</li><li>Responsive build, performance, accessibility</li><li>Motion and 3D viewer integration</li></ul></div>
 </div>
 
 </div></section>
+<div class=end-logo aria-hidden=true><svg role="img" aria-label="LOCO Park" width="254" height="68" viewBox="0 0 254 68" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M216.213 7.31766L208.264 0.704254L208.256 29.645L211.454 32.3055L211.459 20.8466C213.617 21.7926 216.234 21.2297 217.863 19.3045C218.783 18.2173 219.226 17.0036 219.235 15.6598L219.236 13.0364C219.244 10.7272 218.497 9.21807 216.213 7.31766ZM211.455 7.60464L213.991 9.71409C215.681 11.1204 216.074 12.2195 216.077 13.4574L216.062 15.6833C216.049 16.2511 215.867 16.8334 215.465 17.3091C214.66 18.2604 213.251 18.3617 212.314 17.5825L211.469 16.8794L211.455 7.60464Z" fill="white"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M221.278 11.5321L226.075 15.5229L229.721 47.5043L226.295 44.6537L225.543 38.0453L221.34 34.5486L220.585 39.9027L217.615 37.4321L221.278 11.5321ZM221.873 30.7459L225.002 33.3494L223.457 19.6746L221.873 30.7459Z" fill="white"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M238.565 25.9149L230.617 19.3015L230.608 48.2422L233.806 50.9027L233.811 39.4438C234.627 39.8137 235.486 39.9491 236.368 39.8726L238.146 54.5135L241.572 57.3641L239.296 38.758C239.633 38.4979 239.947 38.2188 240.215 37.9017C241.135 36.8146 241.579 35.6009 241.587 34.257L241.588 31.6336C241.596 29.3244 240.85 27.8153 238.565 25.9149ZM233.807 26.2019L236.343 28.3113C238.033 29.7176 238.426 30.8167 238.43 32.0546L238.414 34.2805C238.401 34.8483 238.219 35.4307 237.817 35.9063C237.012 36.8576 235.603 36.9589 234.666 36.1797L233.821 35.4766L233.807 26.2019Z" fill="white"/>
+<path d="M253.894 38.6685L251.382 36.5781L246.13 42.7841L246.128 32.2072L242.93 29.5466L242.922 58.4873L246.12 61.1479L246.131 47.8416L248.24 45.3501L250.688 64.9487L254 67.7043L250.847 42.2698L253.894 38.6685Z" fill="white"/>
+<path d="M108.855 49.9551C108.855 57.2783 114.84 63.2149 122.223 63.2149H158.508V50.8391H126.042V49.0711L158.508 49.0711V36.6953L122.223 36.6953C114.84 36.6953 108.855 42.6319 108.855 49.9551Z" fill="white"/>
+<path d="M0 36.6953H17.1876V50.8391L51.5627 50.8391V63.215H14.323C6.41261 63.215 0 56.8543 0 49.008V36.6953Z" fill="white"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M66.8406 36.6953C59.4576 36.6953 53.4725 42.6319 53.4725 49.9551C53.4725 57.2783 59.4576 63.2149 66.8406 63.2149H93.5768C100.96 63.2149 106.945 57.2783 106.945 49.9551C106.945 42.6319 100.96 36.6953 93.5768 36.6953H66.8406ZM89.7573 49.0711H70.66V50.8391H89.7573V49.0711Z" fill="white"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M160.417 49.9551C160.417 42.6319 166.402 36.6953 173.785 36.6953H198.612C205.995 36.6953 211.98 42.6319 211.98 49.9551C211.98 57.2783 205.995 63.2149 198.612 63.2149H173.785C166.402 63.2149 160.417 57.2783 160.417 49.9551ZM177.605 49.0711H194.792V50.8391H177.605V49.0711Z" fill="white"/>
+</svg></div>
 </main>
 <footer><span>LOCO Arts — website proposal, November 2026</span><span>LOCO Park, 84 David Guramishvili Avenue, Tbilisi</span></footer>
 <script src="data/tiers.js?v=00b6c3e5" defer></script>
 <script src="data/pages-desc.js?v=e5ec7905" defer></script>
-<script src="builder.js?v=680d9f0a" defer></script>
+<script src="builder.js?v=7c665639" defer></script>
 <script src="main.js?v=1a032fc3" defer></script>
 </body>
 </html>
