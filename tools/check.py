@@ -41,13 +41,13 @@ with sync_playwright() as p:
         pg.wait_for_timeout(900); pg.evaluate("scrollTo(0,0)"); pg.wait_for_timeout(1200)
         sw = pg.evaluate("[document.documentElement.scrollWidth, innerWidth]")
         wide = pg.evaluate("""() => [...document.querySelectorAll('body *')].filter(e => {
-            if (e.closest('.marquee, .tw, .pillnav ul')) return false;
+            if (e.closest('.marquee, .tw, .map, .track')) return false;
             const r = e.getBoundingClientRect(); return r.right > innerWidth + 1 || r.left < -1; })
             .slice(0, 8).map(e => e.tagName + '.' + e.className)""")
         print(name, "scrollWidth/innerWidth", sw, "overflowing:", wide)
         pg.screenshot(path=str(OUT / f"new-{name}-top.png"))
         pg.screenshot(path=str(OUT / f"new-{name}-full.png"), full_page=True)
-        for sec in ["builder", "g-artworks", "g-exhibitions", "g-membership", "g-design", "essential", "prices", "team"]:
+        for sec in ["builder", "g-studios", "g-exhibitions", "g-myloco", "g-membership", "g-design", "team"]:
             pg.evaluate(f"document.getElementById('{sec}').scrollIntoView()"); pg.wait_for_timeout(700)
             pg.screenshot(path=str(OUT / f"new-{name}-{sec}.png"))
         ctx.close()

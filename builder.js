@@ -1,14 +1,30 @@
-// Tier builder: renders groups of screens from data/tiers.js, option choices per group,
-// and a live estimate (screens, hours, price, weeks, monthly services).
+// Tier builder.
+// For every group: (1) a map of its screens as nodes with transition lines, (2) a horizontal
+// slider with one slide per screen (layout + description + hours) synced with the map,
+// (3) option choices per tier. A fixed bar shows the live estimate.
 (() => {
   const D = window.LOCO_DATA;
+  const DESC = window.LOCO_DESC || {};
   const root = document.getElementById('groups');
   if (!D || !root) return;
 
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const money = (n) => '$' + Math.round(n).toLocaleString('en-US');
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const tierById = Object.fromEntries(D.tiers.map((t) => [t.id, t]));
-  const state = {}; // decisionKey -> choice id
+  const state = {};
   const key = (g, d) => `${g.id}.${d.id}`;
+
+  // every screen in the project, for names of transition targets
+  const allPages = {};
+  const pageGroup = {};
+  D.groups.forEach((g) => {
+    g.pages.forEach((p) => { allPages[p.id] = p; pageGroup[p.id] = g.id; });
+    g.decisions.forEach((d) => d.choices.forEach((c) => (c.pages || []).forEach((p) => {
+      if (!allPages[p.id]) { allPages[p.id] = p; pageGroup[p.id] = g.id; }
+    })));
+  });
 
   const defaults = (tid) => {
     const s = {};
@@ -21,96 +37,294 @@
     const s = defaults(t.id);
     return Object.keys(s).every((k) => s[k] === state[k]);
   });
+  const tierDots = (tiers) => (tiers.length
+    ? tiers.map((t) => `<span class="td td-${t}">${tierById[t].name}</span>`).join('')
+    : '<span class="td td-alt">Alternative</span>');
 
-  const el = (tag, cls, html) => {
-    const e = document.createElement(tag);
-    if (cls) e.className = cls;
-    if (html != null) e.innerHTML = html;
-    return e;
-  };
-  const tierDots = (tiers) => tiers.length
-    ? tiers.map((t) => `<span class="td td-${t}" title="${tierById[t].name}">${tierById[t].name}</span>`).join('')
-    : '<span class="td td-alt">Alternative</span>';
-
-  // ---------- wireframe of a screen (rectangle with structure) ----------
   const WF = {
     home: '<i class=hero></i><i class=row3></i><i class=row3></i><i class=l></i>',
-    list: '<i class=bar></i><i class=grid></i><i class=grid></i>',
-    detail: '<i class=split></i><i class=l></i><i class=l s></i>',
-    form: '<i class=l s></i><i class=field></i><i class=field></i><i class=btn></i>',
+    list: '<i class=bar></i><i class=grid></i><i class=grid></i><i class=l s></i>',
+    detail: '<i class=split></i><i class=l></i><i class=l s></i><i class=l></i>',
+    form: '<i class=l s></i><i class=field></i><i class=field></i><i class=field></i><i class=btn></i>',
     state: '<i class=circle></i><i class=l s></i>',
     viewer: '<i class=stage></i><i class=l s></i>',
-    map: '<i class=stage dots></i><i class=l s></i>',
+    map: '<i class="stage dots"></i><i class=l s></i>',
     dash: '<i class=row3></i><i class=row3></i><i class=grid></i>',
-    text: '<i class=l></i><i class=l></i><i class=l s></i><i class=l></i>',
+    text: '<i class=l></i><i class=l></i><i class=l s></i><i class=l></i><i class=l></i>',
   };
 
-  const screenCard = (p, opt) => {
-    const c = el('div', 'scr' + (opt ? ' opt' : ''));
-    c.dataset.page = p.id;
-    const to = (p.to || []).length ? `<span class=to>→ ${p.to.join(' ')}</span>` : '';
-    const from = p.from ? `<span class=to>from ${p.from}</span>` : '';
-    c.innerHTML = `<div class="wf wf-${p.kind}" aria-hidden=true>${WF[p.kind] || WF.text}</div>
-      <span class=id>${p.id}</span><span class=nm>${p.name}</span>${to}${from}
-      ${opt ? `<span class=tags>${opt}</span>` : ''}`;
-    return c;
-  };
+  // ---------- screens of a group: base + option-only, with tiers that bring them ----------
+  function groupScreens(g) {
+    const list = g.pages.map((p) => ({ ...p, opt: null }));
+    const seen = new Set(list.map((p) => p.id));
+    g.decisions.forEach((d) => d.choices.forEach((c) => (c.pages || []).forEach((p) => {
+      if (seen.has(p.id)) return;
+      seen.add(p.id);
+      const tiers = [...new Set(d.choices.filter((x) => (x.pages || []).some((q) => q.id === p.id)).flatMap((x) => x.tiers))];
+      list.push({ ...p, opt: { decision: d.id, tiers } });
+    })));
+    return list;
+  }
 
-  // ---------- render groups ----------
+  // ---------- horizontal layout: one row of screens in flow order, a second row for other groups ----------
+  function layout(screens) {
+    const ids = new Set(screens.map((s) => s.id));
+    const order = screens.filter((s) => !s.opt).map((s) => s.id);
+    screens.filter((s) => s.opt).forEach((s) => { // option screens sit right after the screen they open from
+      let at = order.indexOf(s.from);
+      if (at < 0) at = order.length - 1;
+      while (at + 1 < order.length && screens.find((x) => x.id === order[at + 1]).opt) at += 1;
+      order.splice(at + 1, 0, s.id);
+    });
+    const edges = []; const exits = []; const entries = [];
+    screens.forEach((s) => {
+      (s.to || []).forEach((t) => (ids.has(t) ? edges : exits).push([s.id, t]));
+      if (s.from) (ids.has(s.from) ? edges : entries).push(ids.has(s.from) ? [s.from, s.id] : [s.from, s.id]);
+    });
+    const pos = {};
+    order.forEach((id, i) => { pos[id] = [i, 0]; });
+    const taken = new Set();
+    const ghost = (gid, want) => {
+      let c = want;
+      while (taken.has(c)) c += 1;
+      taken.add(c);
+      pos[gid] = [c, 1];
+    };
+    [...new Set(entries.map((e) => e[0]))].forEach((src) => ghost('in:' + src, pos[entries.find((e) => e[0] === src)[1]][0]));
+    [...new Set(exits.map((e) => e[1]))].forEach((t) => ghost('out:' + t, pos[exits.find((e) => e[1] === t)[0]][0]));
+    const cols = Math.max(...Object.values(pos).map((p) => p[0])) + 1;
+    const twoRows = entries.length + exits.length > 0;
+    return { edges, exits, entries, pos, cols, twoRows };
+  }
+
+  // small empty pages; ghosts (second row) = screens in other groups
+  const NW = 46; const NH = 62; const GX = 54; const SW = 28; const SH = 38; const ROW2 = 54;
+
+  function svg(tag, attrs, parent) {
+    const e = document.createElementNS(SVGNS, tag);
+    Object.entries(attrs || {}).forEach(([k, v]) => e.setAttribute(k, v));
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+
+  function buildMap(g, screens, L) {
+    const step = NW + GX;
+    const arcH = (d) => Math.min(14 + d * 12, 84);
+    const maxDist = Math.max(1, ...L.edges.map(([a, b]) => Math.abs(L.pos[a][0] - L.pos[b][0])));
+    const TOP = L.edges.some(([a, b]) => Math.abs(L.pos[a][0] - L.pos[b][0]) > 1 || L.pos[b][0] < L.pos[a][0]) ? arcH(maxDist) + 8 : 6;
+    const W = (L.cols - 1) * step + NW + 24;
+    const H = TOP + NH + (L.twoRows ? ROW2 + SH + 20 : 22);
+    const box = document.createElement('div');
+    box.className = 'map';
+    const s = svg('svg', { viewBox: `-12 0 ${W} ${H}`, width: W, height: H, role: 'group', 'aria-label': `Screen map: ${g.name}` }, box);
+    const defs = svg('defs', {}, s);
+    ['a', 'b'].forEach((m) => {
+      const mk = svg('marker', { id: `ar-${g.id}-${m}`, viewBox: '0 0 6 6', refX: 5, refY: 3, markerWidth: 5, markerHeight: 5, orient: 'auto' }, defs);
+      svg('path', { d: 'M0 0.5 L5 3 L0 5.5', class: m === 'a' ? 'mk' : 'mk on' }, mk);
+    });
+    const xy = (id) => {
+      const [c, r] = L.pos[id];
+      const small = r === 1;
+      const w = small ? SW : NW; const h = small ? SH : NH;
+      return { x: c * step + (NW - w) / 2, y: TOP + (r ? NH + ROW2 : 0), w, h };
+    };
+    const gEdges = svg('g', { class: 'edges' }, s);
+    const gNodes = svg('g', { class: 'nodes' }, s);
+    const addEdge = (a, b, ext, i) => {
+      const A = xy(a); const B = xy(b);
+      let d;
+      if (L.pos[b][1] === 1) { // down to another group
+        const x1 = A.x + A.w + 2; const y1 = A.y + A.h * 0.8; const x2 = B.x + B.w / 2; const y2 = B.y - 4;
+        d = `M${x1} ${y1} C${x1 + 18} ${y1}, ${x2} ${y2 - 30}, ${x2} ${y2}`;
+      } else if (L.pos[a][1] === 1) { // up from another group
+        const x1 = A.x + A.w / 2; const y1 = A.y; const x2 = B.x + B.w / 2; const y2 = B.y + B.h + 18;
+        d = `M${x1} ${y1} C${x1} ${y1 - 20}, ${x2} ${y2 + 14}, ${x2} ${y2}`;
+      } else {
+        const dist = L.pos[b][0] - L.pos[a][0];
+        if (dist === 1) { // neighbours: straight thread
+          d = `M${A.x + A.w + 3} ${A.y + A.h / 2} L${B.x - 4} ${B.y + B.h / 2}`;
+        } else { // further away or backwards: light arc over the row
+          const h = arcH(Math.abs(dist)) * (dist < 0 ? 0.7 : 1);
+          const x1 = A.x + A.w * (dist > 0 ? 0.65 : 0.35); const x2 = B.x + B.w * (dist > 0 ? 0.35 : 0.65);
+          d = `M${x1} ${A.y - 2} C${x1} ${A.y - h}, ${x2} ${B.y - h}, ${x2} ${B.y - 4}`;
+        }
+      }
+      const p = svg('path', { d, class: 'edge' + (ext ? ' ext' : ''), pathLength: 1, 'marker-end': `url(#ar-${g.id}-a)` }, gEdges);
+      p.dataset.a = a.replace(/^(in|out):/, ''); p.dataset.b = b.replace(/^(in|out):/, '');
+      p.style.setProperty('--i', i);
+    };
+    let i = 0;
+    L.entries.forEach(([src, dst]) => addEdge('in:' + src, dst, true, i++));
+    L.edges.forEach(([a, b]) => addEdge(a, b, false, i++));
+    L.exits.forEach(([a, t]) => addEdge(a, 'out:' + t, true, i++));
+
+    let n = 0;
+    const node = (id, cls, label, title) => {
+      const P = xy(id);
+      const gg = svg('g', { class: 'node ' + cls, transform: `translate(${P.x} ${P.y})`, tabindex: 0, role: 'button', 'aria-label': title }, gNodes);
+      gg.style.setProperty('--i', n++);
+      svg('title', {}, gg).textContent = title;
+      svg('rect', { class: 'pg', width: P.w, height: P.h, rx: 3 }, gg);
+      const t = svg('text', { x: P.w / 2, y: P.h + 14, 'text-anchor': 'middle' }, gg);
+      t.textContent = label;
+      return gg;
+    };
+    screens.forEach((sc) => {
+      node(sc.id, sc.opt ? 'opt' : '', sc.id, `${sc.id} ${sc.name} · ${sc.h} h`).dataset.id = sc.id;
+    });
+    [...new Set(L.entries.map((e) => e[0]))].forEach((src) => {
+      node('in:' + src, 'ghost', src, `From ${src} ${allPages[src].name}`).dataset.go = src;
+    });
+    [...new Set(L.exits.map((e) => e[1]))].forEach((t) => {
+      node('out:' + t, 'ghost', t, `Go to ${t} ${allPages[t] ? allPages[t].name : ''}`).dataset.go = t;
+    });
+    return box;
+  }
+
+  function buildSlider(g, screens) {
+    const wrapEl = document.createElement('div');
+    wrapEl.className = 'slider';
+    const track = document.createElement('div');
+    track.className = 'track';
+    track.tabIndex = 0;
+    track.setAttribute('role', 'region');
+    track.setAttribute('aria-label', `Screens of ${g.name}, scroll sideways`);
+    screens.forEach((sc, idx) => {
+      const sl = document.createElement('article');
+      sl.className = 'slide' + (sc.opt ? ' opt' : '');
+      sl.dataset.id = sc.id;
+      const to = (sc.to || []).map((t) => `<li><button type=button data-go="${t}">${t} ${esc(allPages[t] ? allPages[t].name : '')}</button></li>`).join('');
+      const from = sc.from ? `<li><button type=button data-go="${sc.from}">← ${sc.from} ${esc(allPages[sc.from].name)}</button></li>` : '';
+      sl.innerHTML = `<div class="wf big wf-${sc.kind}" aria-hidden=true><i class=topnav></i><div class=wf-body>${WF[sc.kind] || WF.text}</div><i class=foot></i></div>
+        <div class=slide-body>
+          <p class=s-top><span class=s-id>${sc.id}</span><span class=s-n>${idx + 1} / ${screens.length}</span><span class=s-h>${sc.h} h · ${money(sc.h * D.rate)}</span></p>
+          <h4>${esc(sc.name)}</h4>
+          <p class=s-desc>${esc(sc.desc || DESC[sc.id] || '')}</p>
+          ${to || from ? `<p class=s-lab>Transitions</p><ul class=s-links>${from}${to}</ul>` : ''}
+          ${sc.opt ? `<p class=s-lab>Comes with</p><p class=tds>${tierDots(sc.opt.tiers)}</p>` : ''}
+        </div>`;
+      track.appendChild(sl);
+    });
+    const prev = Object.assign(document.createElement('button'), { type: 'button', className: 'nav prev', innerHTML: '←' });
+    const next = Object.assign(document.createElement('button'), { type: 'button', className: 'nav next', innerHTML: '→' });
+    prev.setAttribute('aria-label', 'Previous screen');
+    next.setAttribute('aria-label', 'Next screen');
+    wrapEl.append(track, prev, next);
+    return { wrapEl, track, prev, next };
+  }
+
+  // ---------- render all groups ----------
+  const groups = [];
   D.groups.forEach((g, gi) => {
-    const sec = el('section', 'grp reveal');
+    const sec = document.createElement('section');
+    sec.className = 'grp reveal';
     sec.id = 'g-' + g.id;
     sec.style.setProperty('--gc', `var(--${g.color})`);
-    const n = String(gi + 1).padStart(2, '0');
-    sec.innerHTML = `<div class=grp-head><span class=grp-n>${n}</span><h3>${g.name}</h3>
-      <p class=grp-meta aria-live=polite></p></div>${g.note ? `<p class=grp-note>${g.note}</p>` : ''}`;
-
-    const screens = el('div', 'screens');
-    g.pages.forEach((p) => screens.appendChild(screenCard(p)));
-    // screens that only come with an option, drawn dashed until chosen
-    const seen = new Set();
-    g.decisions.forEach((d) => d.choices.forEach((c) => (c.pages || []).forEach((p) => {
-      if (seen.has(p.id)) return; seen.add(p.id);
-      const tiers = d.choices.filter((x) => (x.pages || []).some((q) => q.id === p.id)).flatMap((x) => x.tiers);
-      const card = screenCard(p, tierDots([...new Set(tiers)]));
-      screens.appendChild(card);
-    })));
-    if (screens.children.length) sec.appendChild(screens);
-    else sec.appendChild(el('p', 'grp-noscreens', 'No screens of its own: works across all groups.'));
-
+    sec.innerHTML = `<div class=grp-head><span class=grp-n>${String(gi + 1).padStart(2, '0')}</span><h3>${esc(g.name)}</h3>
+      <p class=grp-meta></p></div>${g.note ? `<p class=grp-note>${esc(g.note)}</p>` : ''}`;
+    const screens = groupScreens(g);
+    let api = null;
+    if (screens.length) {
+      const L = layout(screens);
+      sec.appendChild(buildMap(g, screens, L));
+      const sl = buildSlider(g, screens);
+      sec.appendChild(sl.wrapEl);
+      api = { sec, screens, ...sl };
+    } else {
+      sec.appendChild(Object.assign(document.createElement('p'), { className: 'grp-noscreens', textContent: 'No screens of its own: this work runs across all groups.' }));
+    }
     g.decisions.forEach((d) => {
-      const fs = el('fieldset', 'dec');
-      fs.innerHTML = `<legend>${d.label}</legend>`;
-      const opts = el('div', 'opts');
-      d.choices.forEach((c) => {
+      const fs = document.createElement('fieldset');
+      fs.className = 'dec';
+      fs.innerHTML = `<legend>${esc(d.label)}</legend><div class=opts>${d.choices.map((c) => {
         const id = `c-${g.id}-${d.id}-${c.id}`;
-        const lab = el('label', 'opt');
-        lab.htmlFor = id;
-        lab.innerHTML = `<input type=radio name="${key(g, d)}" id="${id}" value="${c.id}">
-          <span class=opt-top><span class=opt-l>${c.label}</span><span class=opt-h>${c.hours} h</span></span>
-          ${c.note ? `<span class=opt-n>${c.note}</span>` : ''}
-          <span class=tds>${tierDots(c.tiers)}</span>`;
-        opts.appendChild(lab);
-      });
-      fs.appendChild(opts);
+        return `<label class=opt for="${id}"><input type=radio name="${key(g, d)}" id="${id}" value="${c.id}">
+          <span class=opt-top><span class=opt-l>${esc(c.label)}</span><span class=opt-h>${c.hours} h</span></span>
+          ${c.note ? `<span class=opt-n>${esc(c.note)}</span>` : ''}<span class=tds>${tierDots(c.tiers)}</span></label>`;
+      }).join('')}</div>`;
       sec.appendChild(fs);
     });
     root.appendChild(sec);
+    groups.push({ g, api });
+  });
+
+  // ---------- map <-> slider sync ----------
+  function setActive(api, id) {
+    api.sec.querySelectorAll('.node[data-id]').forEach((n) => n.classList.toggle('on', n.dataset.id === id));
+    api.sec.querySelectorAll('.edge').forEach((e) => {
+      const hot = e.dataset.a === id || e.dataset.b === id;
+      e.classList.toggle('hot', hot);
+      e.setAttribute('marker-end', `url(#ar-${api.sec.id.slice(2)}-${hot ? 'b' : 'a'})`);
+    });
+    api.sec.querySelectorAll('.slide').forEach((s) => s.classList.toggle('cur', s.dataset.id === id));
+    api.active = id;
+    // keep the active page in view when the map is wider than the screen
+    const box = api.sec.querySelector('.map');
+    const node = api.sec.querySelector(`.node[data-id="${id}"]`);
+    if (box && node && box.scrollWidth > box.clientWidth) {
+      const nb = node.getBoundingClientRect(); const bb = box.getBoundingClientRect();
+      box.scrollTo({ left: box.scrollLeft + nb.left - bb.left - (bb.width - nb.width) / 2, behavior: reduce ? 'auto' : 'smooth' });
+    }
+  }
+  function slideTo(api, id, smooth = true) {
+    const sl = api.track.querySelector(`.slide[data-id="${id}"]`);
+    if (!sl) return;
+    api.track.scrollTo({ left: sl.offsetLeft - (api.track.clientWidth - sl.offsetWidth) / 2, behavior: smooth && !reduce ? 'smooth' : 'auto' });
+    setActive(api, id);
+  }
+  function goTo(id) { // a screen in any group
+    const gr = groups.find((x) => x.g.id === pageGroup[id]);
+    if (!gr || !gr.api) return;
+    gr.api.sec.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    slideTo(gr.api, id);
+  }
+  groups.forEach(({ api }) => {
+    if (!api) return;
+    let raf = 0;
+    api.track.addEventListener('scroll', () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const mid = api.track.scrollLeft + api.track.clientWidth / 2;
+        let best = null; let dist = Infinity;
+        api.track.querySelectorAll('.slide').forEach((s) => {
+          const d = Math.abs(s.offsetLeft + s.offsetWidth / 2 - mid);
+          if (d < dist) { dist = d; best = s.dataset.id; }
+        });
+        if (best && best !== api.active) setActive(api, best);
+      });
+    }, { passive: true });
+    const step = (dir) => {
+      const ids = api.screens.map((s) => s.id);
+      const i = Math.max(0, Math.min(ids.length - 1, ids.indexOf(api.active) + dir));
+      slideTo(api, ids[i]);
+    };
+    api.prev.addEventListener('click', () => step(-1));
+    api.next.addEventListener('click', () => step(1));
+    api.sec.addEventListener('click', (e) => {
+      const node = e.target.closest('.node[data-id]');
+      if (node) { slideTo(api, node.dataset.id); return; }
+      const go = e.target.closest('[data-go]');
+      if (go) {
+        const id = go.dataset.go;
+        if (api.screens.some((s) => s.id === id)) slideTo(api, id); else goTo(id);
+      }
+    });
+    api.sec.addEventListener('keydown', (e) => {
+      const t = e.target.closest('.node');
+      if (t && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); t.dispatchEvent(new MouseEvent('click', { bubbles: true })); }
+    });
+    setActive(api, api.screens[0].id);
   });
 
   // ---------- estimate ----------
-  const out = {
-    tier: document.getElementById('c-tier'), screens: document.getElementById('c-screens'),
-    hours: document.getElementById('c-hours'), price: document.getElementById('c-price'),
-    weeks: document.getElementById('c-weeks'), monthly: document.getElementById('c-monthly'),
-    services: document.getElementById('services'),
-  };
+  const out = Object.fromEntries(['c-tier', 'c-screens', 'c-hours', 'c-price', 'c-weeks', 'c-monthly'].map((i) => [i, document.getElementById(i)]));
+  const servicesEl = document.getElementById('services');
   const switches = [...document.querySelectorAll('[data-tier]')];
 
   function update() {
-    let hours = 0; let screens = 0;
+    let hours = 0; let screensTotal = 0;
     const svc = new Set();
-    D.groups.forEach((g) => {
+    groups.forEach(({ g, api }) => {
       let gh = g.hours; let gs = g.pages.length;
       (g.services || []).forEach((s) => svc.add(s));
       const active = new Set();
@@ -121,30 +335,34 @@
         (c.services || []).forEach((s) => svc.add(s));
         document.getElementById(`c-${g.id}-${d.id}-${c.id}`).checked = true;
       });
+      if (api) {
+        api.sec.querySelectorAll('.node.opt, .slide.opt').forEach((el) => el.classList.toggle('off', !active.has(el.dataset.id)));
+        api.sec.querySelectorAll('.edge').forEach((e) => {
+          const optOff = [e.dataset.a, e.dataset.b].some((id) => allPages[id] && !g.pages.some((p) => p.id === id) && pageGroup[id] === g.id && !active.has(id));
+          e.classList.toggle('off', optOff);
+        });
+      }
       const sec = document.getElementById('g-' + g.id);
-      sec.querySelectorAll('.scr.opt').forEach((card) => card.classList.toggle('on', active.has(card.dataset.page)));
-      sec.querySelector('.grp-meta').textContent =
-        `${gs} ${gs === 1 ? 'screen' : 'screens'} · ${gh} h · ${money(gh * D.rate)}`;
-      hours += gh; screens += gs;
+      sec.querySelector('.grp-meta').textContent = `${gs ? `${gs} ${gs === 1 ? 'screen' : 'screens'} · ` : ''}${gh} h · ${money(gh * D.rate)}`;
+      hours += gh; screensTotal += gs;
     });
     let lo = 0; let hi = 0;
     const rows = [];
     svc.forEach((s) => {
       const v = D.services[s]; lo += v.min; hi += v.max;
-      rows.push(`<li><span>${v.name}</span><span>${v.min === v.max ? money(v.min) : `${money(v.min)}–${money(v.max)}`}</span></li>`);
+      rows.push(`<li><span>${esc(v.name)}</span><span>${v.min === v.max ? money(v.min) : `${money(v.min)}–${money(v.max)}`}</span></li>`);
     });
     const t = matchingTier();
-    out.tier.textContent = t ? t.name : 'Custom';
-    out.tier.style.color = t ? `var(--${t.color})` : 'var(--pink)';
-    out.screens.textContent = screens;
-    out.hours.textContent = hours;
-    out.price.textContent = money(hours * D.rate);
-    out.weeks.textContent = t ? `${t.weeks} weeks` : `≈ ${Math.ceil(hours / D.hoursPerWeek)} weeks`;
-    out.monthly.textContent = `${money(lo)}–${money(hi)} / mo`;
-    if (out.services) out.services.innerHTML = rows.join('') + `<li class=tot><span>Total</span><span>${money(lo)}–${money(hi)} / month</span></li>`;
+    out['c-tier'].textContent = t ? t.name : 'Custom';
+    out['c-tier'].style.color = t ? `var(--${t.color})` : 'var(--pink)';
+    out['c-screens'].textContent = screensTotal;
+    out['c-hours'].textContent = hours;
+    out['c-price'].textContent = money(hours * D.rate);
+    out['c-weeks'].textContent = t ? `${t.weeks} weeks` : `≈ ${Math.ceil(hours / D.hoursPerWeek)} weeks`;
+    out['c-monthly'].textContent = `${money(lo)}–${money(hi)} / mo`;
+    if (servicesEl) servicesEl.innerHTML = rows.join('') + `<li class=tot><span>Total</span><span>${money(lo)}–${money(hi)} / month</span></li>`;
     switches.forEach((b) => b.setAttribute('aria-pressed', String(!!t && b.dataset.tier === t.id)));
   }
-
   function setTier(tid) { Object.assign(state, defaults(tid)); update(); }
 
   root.addEventListener('change', (e) => {

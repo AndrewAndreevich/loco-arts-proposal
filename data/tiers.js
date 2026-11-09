@@ -2,7 +2,8 @@
  *
  * rate      – USD per hour. Tier prices = hours of the tier's default choices × rate.
  * groups    – each group = a set of screens + base hours + decisions.
- *   pages   – screens always in scope (id, name, kind = wireframe type, to = transitions).
+ *   pages   – screens always in scope (id, name, kind = wireframe type, h = hours, to = transitions).
+ *             Page hours of a group add up to the group's base hours; option-only work (e.g. import) sits in the choice.
  *   hours   – base hours for the group regardless of options.
  *   services– monthly third-party costs the group always needs.
  *   decisions[].choices[] – alternatives; `tiers` lists which tiers use that choice by default
@@ -29,23 +30,23 @@ window.LOCO_DATA = {
   groups: [
     {
       id: 'home', name: 'Homepage', color: 'pink', hours: 12,
-      pages: [{ id: 'P01', name: 'Home', kind: 'home', to: ['P02', 'P04', 'P07', 'P12', 'P22', 'P25'] }],
+      pages: [{ id: 'P01', name: 'Home', kind: 'home', h: 12, to: ['P02', 'P04', 'P07', 'P12', 'P22', 'P25'] }],
       decisions: [],
     },
     {
       id: 'artists', name: 'Artists', color: 'orange', hours: 16,
       pages: [
-        { id: 'P02', name: 'Artists — directory', kind: 'list', to: ['P03'] },
-        { id: 'P03', name: 'Artist profile', kind: 'detail', to: ['P05', 'P22'] },
+        { id: 'P02', name: 'Artists — directory', kind: 'list', h: 8, to: ['P03'] },
+        { id: 'P03', name: 'Artist profile', kind: 'detail', h: 8, to: ['P05', 'P22'] },
       ],
       decisions: [],
     },
     {
       id: 'artworks', name: 'Artworks', color: 'green', hours: 14, services: ['storage'],
       pages: [
-        { id: 'P04', name: 'Artworks — catalogue', kind: 'list', to: ['P05'] },
-        { id: 'P05', name: 'Artwork detail', kind: 'detail', to: ['P06'] },
-        { id: 'P06', name: 'Artwork inquiry', kind: 'form', to: ['P37'] },
+        { id: 'P04', name: 'Artworks — catalogue', kind: 'list', h: 6, to: ['P05'] },
+        { id: 'P05', name: 'Artwork detail', kind: 'detail', h: 5, to: ['P06'] },
+        { id: 'P06', name: 'Artwork inquiry', kind: 'form', h: 3, to: ['P37'] },
       ],
       decisions: [
         {
@@ -60,7 +61,7 @@ window.LOCO_DATA = {
           id: 'viewer', label: 'Artwork viewer',
           choices: [
             { id: 'std', label: 'Image gallery', hours: 0, tiers: ['E'] },
-            { id: 'zoom', label: 'Deep-zoom viewer', hours: 24, tiers: ['S', 'F'], pages: [{ id: 'S02', name: 'Deep-zoom viewer', kind: 'viewer', from: 'P05' }] },
+            { id: 'zoom', label: 'Deep-zoom viewer', hours: 24, tiers: ['S', 'F'], pages: [{ id: 'S02', name: 'Deep-zoom viewer', kind: 'viewer', h: 24, desc: 'Full-screen artwork view with deep zoom into high-resolution images; opens from the artwork detail.', from: 'P05' }] },
           ],
         },
       ],
@@ -68,24 +69,24 @@ window.LOCO_DATA = {
     {
       id: 'exhibitions', name: 'Exhibitions & Open-Air Gallery', color: 'lime', hours: 22,
       pages: [
-        { id: 'P07', name: 'Exhibitions — overview', kind: 'list', to: ['P08', 'P09', 'P10'] },
-        { id: 'P08', name: 'Exhibition detail', kind: 'detail', to: ['P05', 'P14'] },
-        { id: 'P09', name: 'Past exhibitions archive', kind: 'list', to: ['P08'] },
-        { id: 'P10', name: 'Open-Air Gallery — overview', kind: 'list', to: ['P11'] },
-        { id: 'P11', name: 'Open-Air work detail', kind: 'detail', to: ['P03'] },
+        { id: 'P07', name: 'Exhibitions — overview', kind: 'list', h: 5, to: ['P08', 'P09', 'P10'] },
+        { id: 'P08', name: 'Exhibition detail', kind: 'detail', h: 6, to: ['P05', 'P14'] },
+        { id: 'P09', name: 'Past exhibitions archive', kind: 'list', h: 3, to: ['P08'] },
+        { id: 'P10', name: 'Open-Air Gallery — overview', kind: 'list', h: 4, to: ['P11'] },
+        { id: 'P11', name: 'Open-Air work detail', kind: 'detail', h: 4, to: ['P03'] },
       ],
       decisions: [
         {
           id: 'park', label: 'LOCO Park map',
           choices: [
             { id: 'static', label: 'Static masterplan image', hours: 2, tiers: ['E'] },
-            { id: '2d', label: 'Interactive 2D masterplan', hours: 42, tiers: ['S'], pages: [{ id: 'S01', name: 'LOCO Park masterplan', kind: 'map', from: 'P10' }] },
+            { id: '2d', label: 'Interactive 2D masterplan', hours: 42, tiers: ['S'], pages: [{ id: 'S01', name: 'LOCO Park masterplan', kind: 'map', h: 42, desc: 'Interactive 2D LOCO Park masterplan: buildings and art objects linked to exhibitions, works and programs.', from: 'P10' }] },
             {
               id: '3d', label: '2D masterplan + 3D park (Gaussian Splatting)', hours: 152, tiers: ['F'], services: ['splat'],
               note: 'Drone and ground capture, processing, web viewer, hotspots, 2D fallback',
               pages: [
-                { id: 'S01', name: 'LOCO Park masterplan', kind: 'map', from: 'P10' },
-                { id: 'F01', name: 'LOCO Park in 3D', kind: 'viewer', from: 'S01' },
+                { id: 'S01', name: 'LOCO Park masterplan', kind: 'map', h: 42, desc: 'Interactive 2D LOCO Park masterplan: buildings and art objects linked to exhibitions, works and programs.', from: 'P10' },
+                { id: 'F01', name: 'LOCO Park in 3D', kind: 'viewer', h: 110, desc: 'Photoreal 3D LOCO Park (Gaussian Splatting) from drone and ground capture, with hotspots to works, artists and programs; 2D fallback on low-end devices.', from: 'S01' },
               ],
             },
           ],
@@ -94,7 +95,7 @@ window.LOCO_DATA = {
           id: 'ex3d', label: 'Hall 11 exhibition in 3D',
           choices: [
             { id: 'no', label: 'Photo documentation', hours: 0, tiers: ['E', 'S'] },
-            { id: 'yes', label: '3D visit of one exhibition', hours: 24, tiers: ['F'], pages: [{ id: 'F02', name: 'Exhibition 3D visit', kind: 'viewer', from: 'P08' }] },
+            { id: 'yes', label: '3D visit of one exhibition', hours: 24, tiers: ['F'], pages: [{ id: 'F02', name: 'Exhibition 3D visit', kind: 'viewer', h: 24, desc: '3D visit of one Hall 11 exhibition, linked from the exhibition page.', from: 'P08' }] },
           ],
         },
         {
@@ -109,31 +110,31 @@ window.LOCO_DATA = {
     {
       id: 'programs', name: 'Programs', color: 'sky', hours: 20,
       pages: [
-        { id: 'P12', name: 'Programs — overview', kind: 'list', to: ['P13', 'P16'] },
-        { id: 'P13', name: 'Programs — full calendar', kind: 'list', to: ['P14'] },
-        { id: 'P14', name: 'Program detail', kind: 'detail', to: ['P15', 'M10'] },
-        { id: 'P15', name: 'Program registration', kind: 'form', to: ['P37'] },
-        { id: 'P16', name: 'Past programs archive', kind: 'list', to: ['P14'] },
+        { id: 'P12', name: 'Programs — overview', kind: 'list', h: 4, to: ['P13', 'P16'] },
+        { id: 'P13', name: 'Programs — full calendar', kind: 'list', h: 5, to: ['P14'] },
+        { id: 'P14', name: 'Program detail', kind: 'detail', h: 4, to: ['P15', 'M10'] },
+        { id: 'P15', name: 'Program registration', kind: 'form', h: 5, to: ['P37'] },
+        { id: 'P16', name: 'Past programs archive', kind: 'list', h: 2, to: ['P14'] },
       ],
       decisions: [],
     },
     {
       id: 'calls', name: 'Open Calls', color: 'yellow', hours: 22,
       pages: [
-        { id: 'P17', name: 'Open Calls — active call', kind: 'home', to: ['P19', 'P21'] },
-        { id: 'P18', name: 'Open Calls — no active call', kind: 'state', to: [] },
-        { id: 'P19', name: 'Open Call detail', kind: 'detail', to: ['P20'] },
-        { id: 'P20', name: 'Open Call application', kind: 'form', to: ['P37'] },
-        { id: 'P21', name: 'Open Calls archive', kind: 'list', to: [] },
+        { id: 'P17', name: 'Open Calls — active call', kind: 'home', h: 5, to: ['P19', 'P21'] },
+        { id: 'P18', name: 'Open Calls — no active call', kind: 'state', h: 1, to: [] },
+        { id: 'P19', name: 'Open Call detail', kind: 'detail', h: 4, to: ['P20'] },
+        { id: 'P20', name: 'Open Call application', kind: 'form', h: 9, to: ['P37'] },
+        { id: 'P21', name: 'Open Calls archive', kind: 'list', h: 3, to: [] },
       ],
       decisions: [],
     },
     {
       id: 'studios', name: 'Artist Studios', color: 'pink', hours: 16,
       pages: [
-        { id: 'P22', name: 'Apply for a Studio', kind: 'detail', to: ['P23', 'P24', 'P25'] },
-        { id: 'P23', name: 'Floor plans viewer', kind: 'viewer', to: [] },
-        { id: 'P24', name: 'Studio application', kind: 'form', to: ['P37'] },
+        { id: 'P22', name: 'Apply for a Studio', kind: 'detail', h: 6, to: ['P23', 'P24', 'P25'] },
+        { id: 'P23', name: 'Floor plans viewer', kind: 'viewer', h: 4, to: [] },
+        { id: 'P24', name: 'Studio application', kind: 'form', h: 6, to: ['P37'] },
       ],
       decisions: [],
     },
@@ -141,17 +142,17 @@ window.LOCO_DATA = {
       id: 'membership', name: 'Membership & payments', color: 'orange', hours: 38,
       note: 'Online payment via Bank of Georgia or TBC; access codes for studio residents and partners. Bank fees per LOCO’s merchant agreement.',
       pages: [
-        { id: 'P25', name: 'Membership', kind: 'detail', to: ['P26', 'P27'] },
-        { id: 'P26', name: 'Join membership / checkout', kind: 'form', to: ['P28'] },
-        { id: 'P27', name: 'Activate access code', kind: 'form', to: ['M04'] },
-        { id: 'P28', name: 'Payment result', kind: 'state', to: ['M04'] },
+        { id: 'P25', name: 'Membership', kind: 'detail', h: 5, to: ['P26', 'P27'] },
+        { id: 'P26', name: 'Join membership / checkout', kind: 'form', h: 17, to: ['P28'] },
+        { id: 'P27', name: 'Activate access code', kind: 'form', h: 12, to: ['M04'] },
+        { id: 'P28', name: 'Payment result', kind: 'state', h: 4, to: ['M04'] },
       ],
       decisions: [
         {
           id: 'billing', label: 'Membership billing',
           choices: [
             { id: 'once', label: 'One-time payment + expiry reminders', hours: 0, tiers: ['E', 'S'], note: 'Member renews manually' },
-            { id: 'recurring', label: 'Recurring auto-renewal', hours: 24, tiers: ['F'], note: 'Retries, card change', pages: [{ id: 'F03', name: 'Manage subscription', kind: 'form', from: 'M11' }] },
+            { id: 'recurring', label: 'Recurring auto-renewal', hours: 24, tiers: ['F'], note: 'Retries, card change', pages: [{ id: 'F03', name: 'Manage subscription', kind: 'form', h: 24, desc: 'Recurring membership: auto-renewal, retries and card change in the member account.', from: 'M11' }] },
           ],
         },
       ],
@@ -159,27 +160,27 @@ window.LOCO_DATA = {
     {
       id: 'tours', name: 'Art Tours', color: 'green', hours: 6,
       pages: [
-        { id: 'P29', name: 'Art Tours', kind: 'detail', to: ['P30'] },
-        { id: 'P30', name: 'Request a Tour', kind: 'form', to: ['P37'] },
+        { id: 'P29', name: 'Art Tours', kind: 'detail', h: 3, to: ['P30'] },
+        { id: 'P30', name: 'Request a Tour', kind: 'form', h: 3, to: ['P37'] },
       ],
       decisions: [],
     },
     {
       id: 'about', name: 'About, Partners & Sponsors', color: 'lime', hours: 6,
       pages: [
-        { id: 'P31', name: 'About', kind: 'text', to: ['P32'] },
-        { id: 'P32', name: 'Partners & Sponsors', kind: 'list', to: ['P33'] },
+        { id: 'P31', name: 'About', kind: 'text', h: 3, to: ['P32'] },
+        { id: 'P32', name: 'Partners & Sponsors', kind: 'list', h: 3, to: ['P33'] },
       ],
       decisions: [],
     },
     {
       id: 'utility', name: 'Search, contact & utility pages', color: 'sky', hours: 16, services: ['email', 'newsletter'],
       pages: [
-        { id: 'P33', name: 'Collaborate / Contact', kind: 'form', to: ['P37'] },
-        { id: 'P34', name: 'Search results', kind: 'list', to: [] },
-        { id: 'P35', name: 'Legal page template', kind: 'text', to: [] },
-        { id: 'P36', name: '404 / error', kind: 'state', to: ['P01'] },
-        { id: 'P37', name: 'Form confirmation', kind: 'state', to: [] },
+        { id: 'P33', name: 'Collaborate / Contact', kind: 'form', h: 6, to: ['P37'] },
+        { id: 'P34', name: 'Search results', kind: 'list', h: 4, to: [] },
+        { id: 'P35', name: 'Legal page template', kind: 'text', h: 2, to: [] },
+        { id: 'P36', name: '404 / error', kind: 'state', h: 1, to: ['P01'] },
+        { id: 'P37', name: 'Form confirmation', kind: 'state', h: 3, to: [] },
       ],
       decisions: [
         {
@@ -194,18 +195,18 @@ window.LOCO_DATA = {
     {
       id: 'myloco', name: 'My LOCO — member area', color: 'yellow', hours: 22,
       pages: [
-        { id: 'M01', name: 'Sign in', kind: 'form', to: ['M04'] },
-        { id: 'M02', name: 'Create account', kind: 'form', to: ['M04'] },
-        { id: 'M03', name: 'Password reset', kind: 'form', to: ['M01'] },
-        { id: 'M04', name: 'My LOCO — dashboard', kind: 'dash', to: ['M05', 'M06', 'M07', 'M09', 'M11'] },
-        { id: 'M05', name: 'Registrations & applications', kind: 'list', to: [] },
-        { id: 'M06', name: 'Benefits & discounts', kind: 'list', to: [] },
-        { id: 'M07', name: 'Opportunities database', kind: 'list', to: ['M08'] },
-        { id: 'M08', name: 'Opportunity detail', kind: 'detail', to: [] },
-        { id: 'M09', name: 'Video archive', kind: 'list', to: ['M10'] },
-        { id: 'M10', name: 'Video page', kind: 'viewer', to: [] },
-        { id: 'M11', name: 'Account & membership', kind: 'form', to: [] },
-        { id: 'M12', name: 'Locked content gate', kind: 'state', to: ['P26'] },
+        { id: 'M01', name: 'Sign in', kind: 'form', h: 3, to: ['M04'] },
+        { id: 'M02', name: 'Create account', kind: 'form', h: 3, to: ['M04'] },
+        { id: 'M03', name: 'Password reset', kind: 'form', h: 2, to: ['M01'] },
+        { id: 'M04', name: 'My LOCO — dashboard', kind: 'dash', h: 4, to: ['M05', 'M06', 'M07', 'M09', 'M11'] },
+        { id: 'M05', name: 'Registrations & applications', kind: 'list', h: 2, to: [] },
+        { id: 'M06', name: 'Benefits & discounts', kind: 'list', h: 1, to: [] },
+        { id: 'M07', name: 'Opportunities database', kind: 'list', h: 2, to: ['M08'] },
+        { id: 'M08', name: 'Opportunity detail', kind: 'detail', h: 1, to: [] },
+        { id: 'M09', name: 'Video archive', kind: 'list', h: 1, to: ['M10'] },
+        { id: 'M10', name: 'Video page', kind: 'viewer', h: 1, to: [] },
+        { id: 'M11', name: 'Account & membership', kind: 'form', h: 1, to: [] },
+        { id: 'M12', name: 'Locked content gate', kind: 'state', h: 1, to: ['P26'] },
       ],
       decisions: [
         {
