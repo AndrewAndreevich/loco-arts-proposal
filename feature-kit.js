@@ -95,9 +95,14 @@
     }
     // bring the step's title and options up under the top bar
     function showStep() {
-      const bar = el.querySelector('.feat-bar').getBoundingClientRect().bottom;
-      const top = stepsNav.getBoundingClientRect().top - bar - 12;
-      if (Math.abs(top) > 4) el.scrollBy({ top, behavior: reduce ? 'auto' : 'smooth' });
+      const fix = () => {
+        const bar = el.querySelector('.feat-bar').getBoundingClientRect().bottom;
+        const top = stepsNav.getBoundingClientRect().top - bar - 12;
+        if (Math.abs(top) > 4) el.scrollTo({ top: el.scrollTop + top, behavior: reduce ? 'auto' : 'smooth' });
+      };
+      fix();
+      // Safari stops a smooth scroll when the card height changes under it: check again once it settles
+      setTimeout(() => { if (!el.hidden) fix(); }, 600);
       const h = cards[cur].querySelector('.fc-h');
       h.tabIndex = -1; h.focus({ preventScroll: true });
     }
@@ -202,7 +207,7 @@
       if (el.hidden) return;
       if (e.key === 'Escape') close();
       if (e.key === 'Tab') { // keep focus inside the presentation
-        const f = [...el.querySelectorAll('button, input:not(:disabled), [href]')].filter((x) => x.offsetParent);
+        const f = [...el.querySelectorAll('button, input:not(:disabled), [href]')].filter((x) => x.offsetParent && !x.disabled && !x.closest('[inert]'));
         if (!f.length) return;
         if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); f[f.length - 1].focus(); }
         else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
