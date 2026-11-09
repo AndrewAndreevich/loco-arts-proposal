@@ -851,7 +851,8 @@
         let fh = 0; const fsv = new Set();
         t.choices.forEach(({ d, c, off }) => { if (!d.feature || off) return; fh += c.hours; (c.services || []).forEach((x) => fsv.add(x)); });
         const [a1, b1] = svcRange(fsv);
-        fr.querySelector('.fr-v').textContent = `${lv.label} · ${fh} h${fsv.size ? ` · ${range(a1, b1)} / mo` : ''}${t.once ? ` · ${money(t.once)} one-time` : ''}`;
+        const fp = new Set(); t.choices.forEach(({ d, c, off }) => { if (d.feature && !off) (c.pages || []).forEach((x) => fp.add(x.id)); });
+        fr.querySelector('.fr-v').textContent = `${lv.label} · +${fh} h${fp.size ? ` · +${fp.size} ${fp.size === 1 ? 'screen' : 'screens'}` : ''}${fsv.size ? ` · +${fsv.size} ${fsv.size === 1 ? 'service' : 'services'}` : ''}${t.once ? ' · equipment' : ''}`;
         fr.querySelector('.fr-n').textContent = lv.note || '';
       }
       if (api) {

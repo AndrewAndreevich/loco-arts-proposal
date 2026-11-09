@@ -14,19 +14,11 @@
   // an option as a card: name, one line of totals (hours, screens, services, one-time), a short note, tiers
   // every option of a decision shows the same slots in the same grid, so the cells line up across cards
   const slotsOf = (c) => {
-    const fixed = (c.services || []).filter((x) => x !== 'scanproc');
-    let lo = 0; let hi = 0; fixed.forEach((x) => { lo += D.services[x].min; hi += D.services[x].max; });
-    const n = (c.pages || []).length;
-    return {
-      hours: `${c.hours} h`,
-      screens: n ? `+${n}` : '—',
-      monthly: fixed.length ? range(lo, hi) : '—',
-      work: (c.services || []).includes('scanproc') ? `$${SC.hoursPerWork * SC.night + SC.handling}–${SC.hoursPerWork * SC.instant + SC.handling}` : '—',
-      once: c.oneTime ? money(equipment()) : '—',
-    };
+    const n = (c.pages || []).length; const k = (c.services || []).length;
+    return { hours: `${c.hours} h`, screens: n ? `+${n}` : '—', services: k ? `+${k}` : '—' };
   };
-  const SLOT_LABELS = { hours: 'Hours', screens: 'Screens', monthly: 'Monthly', work: 'Per work', once: 'One-time' };
-  const slotKeys = (d) => Object.keys(SLOT_LABELS).filter((k) => k === 'hours' || d.choices.some((c) => slotsOf(c)[k] !== '—'));
+  const SLOT_LABELS = { hours: 'Hours', screens: 'Screens', services: 'Services' };
+  const slotKeys = () => Object.keys(SLOT_LABELS);
   const metrics = (d, c) => {
     const v = slotsOf(c);
     return slotKeys(d).map((k) => `<span class="fo-m${v[k] === '—' ? ' none' : ''}"><span class=fo-ml>${SLOT_LABELS[k]}</span><b>${v[k]}</b></span>`).join('');
@@ -64,9 +56,9 @@
   <div class=feat-bar>
     <p class=fb-t>Customize · Artworks</p>
     <div class=fb-tally>
-      <span class=c-cell><span class=c-l>Integration</span><span class=c-v data-f=h></span></span>
-      <span class=c-cell><span class=c-l>Monthly</span><span class=c-v data-f=m></span></span>
-      <span class=c-cell><span class=c-l>One-time</span><span class=c-v data-f=o></span></span>
+      <span class=c-cell><span class=c-l>Hours</span><span class=c-v data-f=h></span></span>
+      <span class=c-cell><span class=c-l>Screens</span><span class=c-v data-f=s></span></span>
+      <span class=c-cell><span class=c-l>Services</span><span class=c-v data-f=m></span></span>
     </div>
     <button type=button class=feat-x data-close aria-label="Close and go back to the screens">×</button>
   </div>
@@ -155,13 +147,13 @@
                 </div>
               </div>
               <p class=fs-note>The residence server never serves the site itself: visitors load the scans from the cloud, so the residence connection, power and security stay out of their way.</p>`, true)}
-            ${card('Volume', 'Volume and price', 'How many works are scanned a month, and how fast they are processed. The price below follows your choices.', `<div class=vol>
+            ${card('Volume', 'Volume and price', 'How many works are scanned a month, and how fast they are processed. Prices are in the summary at the end.', `<div class=vol>
                 <label class=vol-l for=fs-n>Works scanned per month <output id=fs-no></output></label>
                 <input id=fs-n type=range min=0 max=200 step=5>
                 <div class=vol-m role=radiogroup aria-label="Processing">
-                  <label><input type=radio name=scanmode value=night> Night queue ${esc(SC.nightWindow)} · $${perNight} per work</label>
-                  <label><input type=radio name=scanmode value=instant> Instant · $${perInstant} per work</label>
-                  <p class=vol-own>Own PC in the residence: no computer-time fee, only our $${SC.handling} handling per work.</p>
+                  <label><input type=radio name=scanmode value=night> Night queue ${esc(SC.nightWindow)}</label>
+                  <label><input type=radio name=scanmode value=instant> Instant</label>
+                  <p class=vol-own>Own PC in the residence: processed there, no paid computer time.</p>
                 </div>
               </div>
               <div class=fs-cost></div>`, true)}
@@ -252,16 +244,16 @@
     const levelDefault = state[key(g, dec('scan'))] === dec('scan').choices[0].id;
     if (!levelPicked && levelDefault) el.querySelectorAll(`[data-dec=scan] input`).forEach((r) => { r.checked = false; });
     const sel = (id) => dec(id).choices.find((c) => c.id === state[key(g, dec(id))]);
-    let h = 0; const svc = new Set(); let once = 0;
+    let h = 0; const svc = new Set(); let once = 0; const pages = new Set();
     decs.forEach((d) => {
       if (isOff(g, d)) return;
       const c = sel(d.id);
       h += c.hours; (c.services || []).forEach((x) => svc.add(x)); if (c.oneTime) once += equipment();
+      (c.pages || []).forEach((p) => pages.add(p.id));
     });
-    let lo = 0; let hi = 0; svc.forEach((x) => { const v = sv(x); lo += v.min; hi += v.max; });
-    el.querySelector('[data-f=h]').textContent = `${h} h · ${money(h * D.rate)}`;
-    el.querySelector('[data-f=m]').textContent = svc.size ? `${range(lo, hi)} / mo` : '—';
-    el.querySelector('[data-f=o]').textContent = once ? money(once) : '—';
+    el.querySelector('[data-f=h]').textContent = `+${h} h`;
+    el.querySelector('[data-f=s]').textContent = pages.size ? `+${pages.size}` : '—';
+    el.querySelector('[data-f=m]').textContent = svc.size ? `+${svc.size}` : '—';
 
     const scanOn = !isOff(g, dec('proc'));
     const own = scanOn && sel('proc').id === 'hybrid';
@@ -271,30 +263,18 @@
     el.querySelector('.vol').classList.toggle('off', !scanOn);
     el.querySelectorAll('[data-flow]').forEach((f) => f.classList.toggle('on', scanOn && f.dataset.flow === sel('proc').id));
 
-    const rows = [];
-    if (scanOn) {
-      const per = perWork();
-      rows.push([`Per work`, own ? `$${SC.handling} handling (own PC)` : `${SC.hoursPerWork} h × $${scanCfg.mode === 'night' ? SC.night : SC.instant} + $${SC.handling} handling = $${per}`]);
-      rows.push(['Processing per month', `${scanCfg.n} × $${per} = ${money(scanCfg.n * per)}`]);
-      svc.forEach((x) => { if (x !== 'scanproc') { const v = sv(x); rows.push([v.name, `${range(v.min, v.max)} / mo`]); } });
-      if (own) {
-        rows.push(['PC: processor, graphics card, network', money(SC.pc)]);
-        rows.push([`NAS ${SC.nasTb} TB: ${SC.nasGel.toLocaleString('en-US')} ₾ at about ${SC.gelPerUsd} ₾ per $`, `≈ ${money(nasUsd())}`]);
-      }
-    } else {
-      rows.push(['Gallery', 'LOCO attaches photos as they are; no processing, no extra services']);
-    }
-    rows.push(['Integration on the site', `${h} h × ${money(D.rate)} = ${money(h * D.rate)}`]);
-    el.querySelector('.fs-cost').innerHTML = `<p class=r-h>Price</p>${rows.map(([a, b]) => `<p class=r-row><span>${esc(a)}</span><span>${esc(b)}</span></p>`).join('')}
-      ${own ? '<p class=fs-note>Hardware prices and the lari rate are estimates; we confirm them with a quote before ordering.</p>' : ''}`;
+    const names = [...svc].map((x) => (x === 'scanproc' ? `PVF Scan processing: ${scanCfg.n} works a month, ${own ? 'on the residence PC' : scanCfg.mode === 'night' ? 'night queue' : 'instant'}` : D.services[x].name));
+    el.querySelector('.fs-cost').innerHTML = scanOn ? `<p class=r-h>Adds these services</p>${names.map((x) => `<p class=r-row><span>${esc(x)}</span></p>`).join('')}
+      ${own ? `<p class=r-h style="margin-top:16px">Equipment for the residence</p><p class=r-row><span>PC and NAS ${SC.nasTb} TB, bought separately: listed in the summary</span></p>` : ''}` : '';
     cards.forEach((k) => k.classList.toggle('na', k.hasAttribute('data-scan') && k.dataset.step !== 'Level' && !scanOn));
     if (!el.hidden) requestAnimationFrame(() => { track.style.height = `${cards[cur].offsetHeight}px`; });
     el.querySelector('.fs-total').innerHTML = `<p class=kicker>Your choice</p><h3>${esc(sel('scan').label)}</h3>
       <div class=fs-tot-row>
-        <span class=c-cell><span class=c-l>Integration</span><span class=rt-v>${h} h</span></span>
-        <span class=c-cell><span class=c-l>Monthly</span><span class=rt-v>${svc.size ? `${range(lo, hi)}` : '—'}</span></span>
-        <span class=c-cell><span class=c-l>One-time</span><span class=rt-v>${once ? money(once) : '—'}</span></span>
-      </div>`;
+        <span class=c-cell><span class=c-l>Hours</span><span class=rt-v>+${h} h</span></span>
+        <span class=c-cell><span class=c-l>Screens</span><span class=rt-v>${pages.size ? `+${pages.size}` : '—'}</span></span>
+        <span class=c-cell><span class=c-l>Services</span><span class=rt-v>${svc.size ? `+${svc.size}` : '—'}</span></span>
+      </div>${once ? '<p class=fs-note>Plus equipment for the residence, bought separately: see the summary.</p>' : ''}
+      <p class=fs-note>Prices for all of this are in the summary at the end of the page.</p>`;
   }
 
   // ---------- open / close ----------
