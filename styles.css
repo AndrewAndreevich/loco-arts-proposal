@@ -106,6 +106,8 @@ body { padding-bottom: 96px; }
 .grp-foot .c-v { transition: color .3s; }
 .grp-foot.on .gf-base .c-v { color: var(--gc); }
 .grp-foot.on .gf-opt .c-v { color: var(--amber); }
+.gf-opt { margin-top: 6px; }
+.gf-opt .c-v { font-size: 17px; }
 .grp-foot.on .gf-tag { color: #cfcfcf; }
 
 /* the hours column has one width in the bar and on every group line */
@@ -844,3 +846,10 @@ html.feat-open { overflow: hidden; }
 @media (max-width: 900px) { .fs-fmt .fs-steps, .fs-fmt .fs-steps-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 600px) { .fs-fmt .fs-steps, .fs-fmt .fs-steps-3 { grid-template-columns: 1fr; } }
 .fc-h:focus { outline: none; }
+/* summary part 2: options by name, equipment bought separately */
+.rep-2 { margin-top: 72px; padding-top: 48px; border-top: 1px solid var(--line); }
+.rep-lead { color: #cfcfcf; max-width: 70ch; margin: -24px 0 24px; }
+.rep-o td b { font-weight: 400; color: var(--fg); }
+.rep-o .rn { width: auto; white-space: nowrap; padding-right: 16px; }
+.rep-eq { margin-top: 32px; max-width: 640px; }
+@media (max-width: 720px) { .rep-o .rn { display: none; } .rep-o th:first-child { display: none; } .rep-o tfoot td:first-child { display: none; } }

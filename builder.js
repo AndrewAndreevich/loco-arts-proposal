@@ -372,7 +372,7 @@
       <span class=c-cell>${labels ? '<span class=c-l>Screens</span>' : ''}<span class="c-v gf-s"></span></span>
       <span class=c-cell>${labels ? '<span class=c-l>Services</span>' : ''}<span class="c-v gf-m"></span></span>
       <span class=gf-tag></span></div>`;
-    foot.innerHTML = row('base', true) + (g.decisions.length ? row('opt', false) : '');
+    foot.innerHTML = row('base', true) + '<div class=gf-opts></div>';
     sec.appendChild(foot);
     groups.push({ g, api });
   });
@@ -629,7 +629,7 @@
     sec.className = 'grp plan in';
     sec.id = 'g-plan';
     sec.style.setProperty('--gc', 'var(--yellow)');
-    sec.innerHTML = `<p class=kicker>Summary · 2 of 2</p><div class=grp-head><span class=grp-n>W</span><h3>Time, week by week</h3></div>
+    sec.innerHTML = `<p class=kicker>Summary · 3 of 3</p><div class=grp-head><span class=grp-n>W</span><h3>Time, week by week</h3></div>
       <div class=sum-rows>
         <p class=r-row><span>Timeline</span><span><b>${weeks.length} weeks</b></span></p>
         <p class=r-row><span>Pace</span><span>≈ ${cap} h of work per week</span></p>
@@ -768,7 +768,7 @@
     const dev = hours * D.rate;
     const svcRows = [...svc].map((x) => { const v = sv(x); return `<p class=r-row><span>${esc(v.name)}</span><span>${range(v.min, v.max)} / mo</span></p>`; }).join('');
     reportEl.innerHTML = `<div class=wrap>
-      <p class=kicker>Summary · 1 of 2</p>
+      <p class=kicker>Summary · 1 of 3</p>
       <h2 class=rep-h>Cost</h2>
       <div class=set-sw role=group aria-label="Which set to count">${setButtons()}</div>
       <div class=rep-tally>
@@ -777,16 +777,45 @@
         <span class=c-cell><span class=c-l>Services</span><span class=rt-v data-k=monthly>${svc.size ? `${range(lo, hi)} / mo` : '—'}</span></span>
       </div>
       <div class=rep-big>
-        <div><p class=rb-l>Design, development and support</p><p class=rb-v>${money(dev)}</p><p class=rb-s>${hours} h × ${money(D.rate)} · ${screens} screens${curTier ? ` · ${curTier.name} in the proposal: ${money(curTier.price)}, ${curTier.weeks} weeks` : ''}${once ? ` · plus ${money(once)} equipment, one-time` : ''}</p></div>
+        <div><p class=rb-l>Design, development and support</p><p class=rb-v>${money(dev)}</p><p class=rb-s>${hours} h × ${money(D.rate)} · ${screens} screens${curTier ? ` · ${curTier.name} in the proposal: ${money(curTier.price)}, ${curTier.weeks} weeks` : ''}</p></div>
         <div><p class=rb-l>Services, first year</p><p class=rb-v>${range(lo * 12, hi * 12)}</p><p class=rb-s>twelve months of the services above</p></div>
-        <div class=rb-tot><p class=rb-l>Total for the first year</p><p class=rb-v>${range(dev + once + lo * 12, dev + once + hi * 12)}</p><p class=rb-s>work${once ? ', equipment' : ''} plus twelve months of services</p></div>
+        <div class=rb-tot><p class=rb-l>Total for the first year</p><p class=rb-v>${range(dev + lo * 12, dev + hi * 12)}</p><p class=rb-s>work plus twelve months of services${once ? '; equipment is listed separately below' : ''}</p></div>
       </div>
       <div class=rep-cols>
         <div><p class=r-h>By group</p><table class=rep-t><thead><tr><th></th><th>Group</th><th class=rs>Screens</th><th class=rh>Hours</th><th class=rd>Cost</th></tr></thead>
           <tbody>${rows}</tbody><tfoot><tr><td></td><td>Total</td><td class=rs>${screens}</td><td class=rh>${hours} h</td><td class=rd>${money(dev)}</td></tr></tfoot></table></div>
         <div><p class=r-h>Services, per month</p>${svcRows || '<p class=r-row><span>No paid services</span><span>—</span></p>'}
           <p class="r-row r-tot"><span>Total</span><span>${range(lo, hi)} / mo</span></p></div>
-      </div></div>`;
+      </div>
+      ${extrasHtml(all, once)}</div>`;
+  }
+
+  // part 2 of the summary: every option that adds something, by name, and equipment bought separately
+  function extrasHtml(all, once) {
+    let oh = 0; const osvc = new Set();
+    const rows = [];
+    all.forEach(({ g, t }) => t.choices.forEach(({ d, c, off }) => {
+      if (off || !(c.hours > 0 || (c.services || []).length || (c.pages || []).length)) return;
+      const own = new Set(c.services || []); const [a1, b1] = svcRange(own);
+      oh += c.hours; own.forEach((x) => osvc.add(x));
+      rows.push(`<tr style="--gc:var(--${g.color})"><td class=rn>${esc(g.name)}</td><td>${esc(d.label)}: <b>${esc(c.label)}</b></td>
+        <td class=rh>+${c.hours} h</td><td class=rd>${money(c.hours * D.rate)}</td><td class=rs>${own.size ? `${range(a1, b1)} / mo` : '—'}</td></tr>`);
+    }));
+    const [ol, ohi] = svcRange(osvc);
+    const eq = once ? `<div class=rep-eq><p class=r-h>Equipment, bought separately</p>
+        <p class=r-row><span>PC: processor, graphics card, network</span><span>${money(SC.pc)}</span></p>
+        <p class=r-row><span>NAS ${SC.nasTb} TB (${SC.nasGel.toLocaleString('en-US')} ₾ at about ${SC.gelPerUsd} ₾ per $)</span><span>≈ ${money(nasUsd())}</span></p>
+        <p class="r-row r-tot"><span>One-time purchase</span><span>${money(once)}</span></p>
+        <p class=fs-note>Not included in the totals above: LOCO buys it once for the residence. Prices and the lari rate are estimates until we have a quote.</p></div>` : '';
+    return `<div class=rep-2>
+      <p class=kicker>Summary · 2 of 3</p>
+      <h2 class=rep-h>Options and extras</h2>
+      <p class=rep-lead>What the chosen options add on top of the standard screens. They are already counted in the cost above; here they are by name.</p>
+      ${rows.length ? `<table class="rep-t rep-o"><thead><tr><th>Group</th><th>Option</th><th class=rh>Hours</th><th class=rd>Cost</th><th class=rs>Services</th></tr></thead>
+        <tbody>${rows.join('')}</tbody><tfoot><tr><td></td><td>All options</td><td class=rh>+${oh} h</td><td class=rd>${money(oh * D.rate)}</td><td class=rs>${osvc.size ? `${range(ol, ohi)} / mo` : '—'}</td></tr></tfoot></table>`
+        : '<p class=r-row><span>No options that add work or services</span><span>—</span></p>'}
+      ${eq}
+    </div>`;
   }
 
   let reportSig = '';
@@ -834,21 +863,25 @@
         });
       }
       const sec = document.getElementById('g-' + g.id);
-      // standard: the group's own screens and services; options: everything the chosen options add on top
+      // standard: the group's own screens and services; then each chosen option on its own row
       const baseSvc = new Set(g.services || []);
-      const optSvcs = new Set([...t.svc].filter((x) => !baseSvc.has(x)));
-      const optH = t.h - g.hours; const optS = t.screens - g.pages.length;
-      const used = t.choices.filter(({ off, c }) => !off && (c.hours > 0 || (c.services || []).length)).map(({ c }) => c.label);
-      const fill = (k, h, n, set, tag) => {
-        const r = sec.querySelector(`.gf-${k}`); if (!r) return;
-        const [a1, b1] = svcRange(set);
-        r.querySelector('.gf-h').textContent = `+${h} h`;
-        r.querySelector('.gf-s').textContent = n ? `+${n}` : '—';
-        r.querySelector('.gf-m').textContent = set.size ? `+${range(a1, b1)} / mo` : '—';
-        r.querySelector('.gf-tag').textContent = tag;
-      };
-      fill('base', g.hours, g.pages.length, baseSvc, g.pages.length ? 'Standard screens' : 'Standard work');
-      fill('opt', optH, optS, optSvcs, used.length ? `Options and customization: ${used.join(' · ')}` : 'Options and customization: none chosen');
+      const [bl, bh] = svcRange(baseSvc);
+      const base = sec.querySelector('.gf-base');
+      base.querySelector('.gf-h').textContent = `+${g.hours} h`;
+      base.querySelector('.gf-s').textContent = g.pages.length ? `+${g.pages.length}` : '—';
+      base.querySelector('.gf-m').textContent = baseSvc.size ? `+${range(bl, bh)} / mo` : '—';
+      base.querySelector('.gf-tag').textContent = g.pages.length ? 'Standard screens' : 'Standard work';
+      const optRows = t.choices.filter(({ off, c }) => !off && (c.hours > 0 || (c.services || []).length || (c.pages || []).length)).map(({ d, c }) => {
+        const own = new Set(c.services || []);
+        const [ol, oh] = svcRange(own);
+        const n = (c.pages || []).length;
+        return `<div class="gf-row gf-opt"><span class=c-cell><span class="c-v">+${c.hours} h</span></span>
+          <span class=c-cell><span class="c-v">${n ? `+${n}` : '—'}</span></span>
+          <span class=c-cell><span class="c-v">${own.size ? `+${range(ol, oh)} / mo` : '—'}</span></span>
+          <span class=gf-tag>${esc(d.label)}: ${esc(c.label)}</span></div>`;
+      }).join('');
+      const box = sec.querySelector('.gf-opts');
+      if (box.innerHTML !== optRows) box.innerHTML = optRows;
       sec.querySelector('.grp-foot').classList.toggle('on', !!passed[g.id]);
       if (passed[g.id]) { hours += t.h; screens += t.screens; t.svc.forEach((x) => svc.add(x)); }
       return { g, t };
@@ -972,9 +1005,9 @@
     const rows = [[title, ''], []];
     if (B.tier) rows.push(['Proposal price, $', B.tier.price], ['Proposal timeline, weeks', B.tier.weeks]);
     rows.push(['Hours', B.hours], ['Screens', B.screens], ['Rate, $/h', D.rate], ['Hours × rate, $', dev],
-      ['Equipment, one-time, $', B.once || 0],
+      ['Equipment, bought separately (not in the totals), $', B.once || 0],
       ['Services, $/mo', span2(B.lo, B.hi)], ['Services, first year, $', span2(B.lo * 12, B.hi * 12)],
-      [B.tier ? 'Price + equipment + first-year services, $' : 'Total for the first year, $', B.tier ? span2(B.tier.price + B.once + B.lo * 12, B.tier.price + B.once + B.hi * 12) : span2(dev + B.once + B.lo * 12, dev + B.once + B.hi * 12)],
+      [B.tier ? 'Price + first-year services, $' : 'Total for the first year, $', B.tier ? span2(B.tier.price + B.lo * 12, B.tier.price + B.hi * 12) : span2(dev + B.lo * 12, dev + B.hi * 12)],
       ['PVF Scan volume', `${scanCfg.n} works / month, ${scanCfg.mode === 'night' ? 'night queue' : 'instant'} processing`],
       ['Timeline, weeks', B.weeks.length], ['Pace, h/week', B.cap], ['Support after launch', `${B.support.label} · ${B.support.hours} h`], []);
     rows.push(['Groups', '', 'Screens', 'Hours', 'Cost, $', 'Services, $/mo']);
@@ -1010,7 +1043,7 @@
       ['Proposal price, $', '—', ...D.tiers.map((t) => t.price)],
       ['Hours', ...cols.map((B) => B.hours)],
       ['Hours × rate, $', ...cols.map((B) => B.hours * D.rate)],
-      ['Equipment, one-time, $', ...cols.map((B) => B.once || 0)],
+      ['Equipment, bought separately, $', ...cols.map((B) => B.once || 0)],
       ['Screens', ...cols.map((B) => B.screens)],
       ['Timeline, weeks', ...cols.map((B) => B.weeks.length)],
       ['Pace, h/week', ...cols.map((B) => B.cap)],
