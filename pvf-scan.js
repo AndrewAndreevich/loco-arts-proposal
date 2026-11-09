@@ -104,7 +104,7 @@
     <section class=fs-sec>
       <h3>How it works</h3>
       <div class=fs-fmt>
-        <div class=fs-fmt-h><span class=fs-tag>2D</span><h4>Flat works</h4><p>Paintings, graphics, photographs, textile: one flat, distortion-free image in super resolution.</p></div>
+        <div class=fs-fmt-h><p class=fs-tag>2D</p><h4>Flat works</h4><p>Paintings, graphics, photographs, textile: one flat, distortion-free image in super resolution.</p></div>
         <ol class=fs-steps>
           ${step(1, 1, 'Light it evenly', 'Two lights at 45° to the work, no direct sun. Put the colour card next to the work in the first frame.')}
           ${step(2, 2, 'Shoot close, in a grid', 'Camera parallel to the work, 10–20 frames in rows with about 60% overlap, every frame in focus. The camera you already have.')}
@@ -114,7 +114,7 @@
         </ol>
       </div>
       <div class=fs-fmt>
-        <div class=fs-fmt-h><span class=fs-tag>3D</span><h4>Sculpture and objects</h4><p>Anything with volume: a 3D scan you can turn around, and renders made from it.</p></div>
+        <div class=fs-fmt-h><p class=fs-tag>3D</p><h4>Sculpture and objects</h4><p>Anything with volume: a 3D scan you can turn around, and renders made from it.</p></div>
         <ol class=fs-steps>
           ${step(1, 6, 'Soft light all around', 'No hard shadows. Put the object on a turntable or walk around it.')}
           ${step(2, 7, 'Shoot in rings', '60–100 frames in 2–3 rings at different heights, each frame overlapping the next.')}
@@ -124,7 +124,7 @@
         </ol>
       </div>
       <div class=fs-fmt>
-        <div class=fs-fmt-h><span class=fs-tag>2D + 3D</span><h4>Progress over time</h4><p>For both formats: the same work scanned at every stage.</p></div>
+        <div class=fs-fmt-h><p class=fs-tag>2D + 3D</p><h4>Progress over time</h4><p>For both formats: the same work scanned at every stage.</p></div>
         <ol class="fs-steps fs-steps-3">
           ${step(1, 11, 'Scan again', 'At each stage, scan the same work with the same setup.')}
           ${step(2, 12, 'Aligned for you', 'Each new scan is matched to the previous one automatically, so the work does not jump between stages.')}
@@ -203,7 +203,14 @@
     cards.forEach((k, j) => { k.classList.toggle('cur', j === cur); k.inert = j !== cur; });
     stepsNav.querySelectorAll('[data-go]').forEach((b, j) => b.setAttribute('aria-selected', String(j === cur)));
   }
-  stepsNav.addEventListener('click', (e) => { const b = e.target.closest('[data-go]'); if (b) go(Number(b.dataset.go)); });
+  function showStep() {
+    const bar = el.querySelector('.feat-bar').getBoundingClientRect().bottom;
+    const top = stepsNav.getBoundingClientRect().top - bar - 12;
+    if (Math.abs(top) > 4) el.scrollBy({ top, behavior: reduce ? 'auto' : 'smooth' });
+    const h = cards[cur].querySelector('.fc-h');
+    h.tabIndex = -1; h.focus({ preventScroll: true });
+  }
+  stepsNav.addEventListener('click', (e) => { const b = e.target.closest('[data-go]'); if (b) { go(Number(b.dataset.go)); showStep(); } });
   // a neighbour peeking at the side: tap it to go there
   track.addEventListener('pointerup', (e) => {
     const k = e.target.closest('.fc-card');
@@ -218,7 +225,7 @@
     const o = e.target.closest('.fc-card.cur .fo');
     if (!o || e.detail === 0) return;
     const i = cur;
-    setTimeout(() => { if (cur === i) go(nextAfter(i)); }, 380);
+    setTimeout(() => { if (cur === i) { go(nextAfter(i)); showStep(); } }, 380);
   });
   // swipe between steps
   let drag = null; let moved = false;
