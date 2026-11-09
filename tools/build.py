@@ -124,6 +124,9 @@ assert "base64" not in src, "a photo was not replaced"
 src, n = re.subn(r'<div class=mem><img src="assets/kirill-pavliashik\.jpg".*?</div>\n?', '', src, flags=re.S)
 assert n == 1, "Kirill's card not found"
 src = src.replace('<div class="team reveal">', '<div class="team team-2 reveal">', 1)
+# Andrei does the frontend too
+assert src.count('<p class=role>Tech lead · full-stack · backend</p>') == 1, "Andrei's role not found"
+src = src.replace('<p class=role>Tech lead · full-stack · backend</p>', '<p class=role>Tech lead · full-stack · frontend · backend</p>')
 src = src.replace("</div></section>\n</main>", "</div></section>\n<div class=end-logo aria-hidden=true>" + LOGO + "</div>\n</main>", 1)
 assert "end-logo" in src
 

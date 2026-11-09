@@ -14,7 +14,7 @@ OUT = Path(sys.argv[2]); OUT.mkdir(parents=True, exist_ok=True)
 new = (ROOT / "index.html").as_uri()
 
 TEXT_JS = """() => { document.querySelectorAll('details').forEach(d => d.open = true);
-  document.querySelectorAll('#builder, #report, .builder-2, .calc, summary.prop-sum, a.cta[href="#prices"], .mem:has(img[alt="Kirill Pavliashik"]), .end-logo').forEach(e => e.remove());
+  document.querySelectorAll('#builder, #report, .builder-2, .calc, summary.prop-sum, a.cta[href="#prices"], .mem:has(img[alt="Kirill Pavliashik"]), .end-logo').forEach(e => e.remove()); document.querySelectorAll('.mem .role').forEach(e => { e.textContent = e.textContent.replace(' · frontend', ''); });
   return [...document.querySelectorAll('main, footer')].map(e => e.innerText).join('\\n'); }"""
 
 
