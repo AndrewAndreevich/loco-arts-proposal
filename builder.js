@@ -295,7 +295,7 @@
         <div class=slide-body>
           ${sum ? `<p class=s-sum>${esc(sum)}</p>` : ''}
           ${parts.length ? `<ul class=s-parts>${parts.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
-          ${sc.opt ? `<p class=s-optw><span class=s-opt-on>Counted, it comes with:</span><span class=s-opt-off>Not counted in this set. It comes with:</span> ${esc(optWith(g, sc.id).join(' or '))}</p><p class=tds>${tierDots(sc.opt.tiers)}</p>` : ''}
+          ${sc.opt ? `<p class=s-optw>Comes with ${esc(optWith(g, sc.id).join(' or '))}</p><p class=tds>${tierDots(sc.opt.tiers)}</p>` : ''}
         </div>`;
       strip.appendChild(sl);
     });

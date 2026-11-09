@@ -11,13 +11,29 @@
   const dec = (id) => decs.find((d) => d.id === id);
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  // an option as a card: name, one line of totals (hours, screens, services, one-time), a short note, tiers
+  const metrics = (c) => {
+    const m = [`<span class=fo-m><b>${c.hours} h</b></span>`];
+    const n = (c.pages || []).length;
+    if (n) m.push(`<span class=fo-m><b>+${n}</b> ${n === 1 ? 'screen' : 'screens'}</span>`);
+    const fixed = (c.services || []).filter((x) => x !== 'scanproc');
+    if (fixed.length) {
+      let lo = 0; let hi = 0; fixed.forEach((x) => { lo += D.services[x].min; hi += D.services[x].max; });
+      m.push(`<span class=fo-m><b>${range(lo, hi)}</b> / mo</span>`);
+    }
+    if ((c.services || []).includes('scanproc')) m.push(`<span class=fo-m><b>$${SC.hoursPerWork * SC.night + SC.handling}–${SC.hoursPerWork * SC.instant + SC.handling}</b> / work</span>`);
+    if (c.oneTime) m.push(`<span class=fo-m><b>${money(equipment())}</b> one-time</span>`);
+    return m.join('');
+  };
   const fieldset = (d) => `<fieldset class="dec fs-dec" data-dec="${d.id}"><legend>${esc(d.label)}</legend>
     ${d.dependsOn ? '<p class=fs-off>Pick a PVF Scan level above to set this.</p>' : ''}
-    <div class=opts>${d.choices.map((c) => {
+    <div class=fo-grid>${d.choices.map((c) => {
       const id = `c-${g.id}-${d.id}-${c.id}`;
-      return `<label class=opt for="${id}"><input type=radio name="${key(g, d)}" id="${id}" value="${c.id}">
-        <span class=opt-top><span class=opt-l>${esc(c.label)}</span><span class=opt-h>${c.hours} h</span></span>
-        ${c.note ? `<span class=opt-n>${esc(c.note)}</span>` : ''}${optSvc(c)}<span class=tds>${tierDots(c.tiers)}</span></label>`;
+      return `<label class=fo for="${id}"><input type=radio name="${key(g, d)}" id="${id}" value="${c.id}">
+        <span class=fo-l>${esc(c.label)}</span>
+        <span class=fo-ms>${metrics(c)}</span>
+        ${c.note ? `<span class=fo-n>${esc(c.note)}</span>` : ''}
+        <span class=tds>${tierDots(c.tiers)}</span></label>`;
     }).join('')}</div></fieldset>`;
 
   // tutorial icons: one generated sheet cut into assets/pvf-scan/icon-01..15.png (see design/pvf-scan-prompts.md)
@@ -193,7 +209,7 @@
     return i + 1;
   };
   el.addEventListener('click', (e) => {
-    const o = e.target.closest('.fc-card.cur .opt');
+    const o = e.target.closest('.fc-card.cur .fo');
     if (!o || e.detail === 0) return;
     const i = cur;
     setTimeout(() => { if (cur === i) go(nextAfter(i)); }, 380);
