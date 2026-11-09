@@ -443,8 +443,7 @@
     return { pk, support: pick('delivery', 'support') };
   }
 
-  function planWeeks(pk) {
-    const cap = D.hoursPerWeek;
+  function planWeeks(pk, cap) {
     const weeks = [[]]; let used = 0;
     pk.forEach((p) => {
       let rem = p.hours;
@@ -458,15 +457,34 @@
     return weeks;
   }
 
+  function planSpan(total) {
+    const t = matchingTier();
+    if (t) return t.weeks;
+    const pts = D.tiers.map((tt) => {
+      const st = defaults(tt.id);
+      let h = 0;
+      D.groups.forEach((g) => { h += g.hours; g.decisions.forEach((d) => { if (d.id !== 'support') h += d.choices.find((c) => c.id === st[key(g, d)]).hours; }); });
+      return [h, tt.weeks];
+    }).sort((a, b) => a[0] - b[0]);
+    if (total <= pts[0][0]) return pts[0][1];
+    for (let i = 1; i < pts.length; i += 1) {
+      const [h0, w0] = pts[i - 1]; const [h1, w1] = pts[i];
+      if (total <= h1) return Math.ceil(w0 + (w1 - w0) * (total - h0) / (h1 - h0));
+    }
+    const [hl, wl] = pts[pts.length - 1];
+    return Math.ceil(wl * total / hl);
+  }
+
   function renderPlan() {
     if (!planRoot) return;
     const sig = JSON.stringify(state);
     if (sig === planSig) return;
     planSig = sig;
     const { pk, support } = planPackages();
-    const weeks = planWeeks(pk);
     const total = pk.reduce((a, p) => a + p.hours, 0);
-    const cap = D.hoursPerWeek;
+    const span = planSpan(total);
+    const cap = Math.ceil(total / span);
+    const weeks = planWeeks(pk, cap);
     planRoot.innerHTML = '';
 
     const sec = document.createElement('section');
@@ -475,7 +493,7 @@
     sec.style.setProperty('--gc', 'var(--yellow)');
     sec.innerHTML = `<div class=grp-head><span class=grp-n>W</span><h3>Work plan</h3>
       <p class=grp-meta>${weeks.length} weeks · ${total} h</p></div>
-      <p class=grp-note>Built from the screens and the options selected above, about ${cap} h of work per week. Change an option and the plan rebuilds.</p>`;
+      <p class=grp-note>Built from the screens and the options selected above, about ${cap} h of work per week. A tier selection keeps its proposal timeline; change an option and the plan rebuilds.</p>`;
 
     // calendar map: one cell per week, a colour bar showing which groups the week works on
     const CW = 52; const CH = 56; const GAP = 14; const SUPW = 64;
