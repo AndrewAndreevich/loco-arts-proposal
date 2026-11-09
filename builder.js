@@ -289,8 +289,7 @@
     sec.className = 'grp reveal';
     sec.id = 'g-' + g.id;
     sec.style.setProperty('--gc', `var(--${g.color})`);
-    sec.innerHTML = `<div class=grp-head><span class=grp-n>${String(gi + 1).padStart(2, '0')}</span><h3>${esc(g.name)}</h3>
-      <p class=grp-meta></p></div>${g.note ? `<p class=grp-note>${esc(g.note)}</p>` : ''}`;
+    sec.innerHTML = `<div class=grp-head><span class=grp-n>${String(gi + 1).padStart(2, '0')}</span><h3>${esc(g.name)}</h3></div>${g.note ? `<p class=grp-note>${esc(g.note)}</p>` : ''}`;
     const screens = groupScreens(g);
     let api = null;
     if (screens.length) {
@@ -322,6 +321,10 @@
       }
     });
     root.appendChild(sec);
+    const foot = document.createElement('div');
+    foot.className = 'grp-foot';
+    foot.innerHTML = `<span class=gf-s></span><span class=gf-v><span class=gf-h></span><span class=gf-m></span></span>`;
+    sec.appendChild(foot);
     groups.push({ g, api });
   });
 
@@ -376,7 +379,6 @@
     moveStrip(api, centreX(api, sl), smooth);
     const changed = id !== api.active;
     setActive(api, id);
-    if (changed) seen(api, id);
   }
   function goTo(id) { // a screen in any group
     const gr = groups.find((x) => x.g.id === pageGroup[id]);
@@ -479,7 +481,7 @@
     groups.forEach(({ api }) => {
       if (!api || !api.decs) return;
       api.decs.forEach(({ fs, card }) => {
-        if (phone.matches) { card.appendChild(fs); card.hidden = false; } else { api.sec.appendChild(fs); card.hidden = true; }
+        if (phone.matches) { card.appendChild(fs); card.hidden = false; } else { api.sec.insertBefore(fs, api.sec.querySelector('.grp-foot')); card.hidden = true; }
       });
       if (!visibleIds(api).includes(api.active)) setActive(api, api.screens[0].id);
       slideTo(api, api.active, false);
@@ -575,9 +577,13 @@
     sec.className = 'grp plan in';
     sec.id = 'g-plan';
     sec.style.setProperty('--gc', 'var(--yellow)');
-    sec.innerHTML = `<div class=grp-head><span class=grp-n>W</span><h3>Work plan</h3>
-      <p class=grp-meta>${weeks.length} weeks · ${total} h</p></div>
-      <p class=grp-note>Built from the screens and the options selected above, about ${cap} h of work per week. A tier selection keeps its proposal timeline; change an option and the plan rebuilds.</p>`;
+    sec.innerHTML = `<p class=kicker>Summary · 2 of 2</p><div class=grp-head><span class=grp-n>W</span><h3>Time, week by week</h3></div>
+      <div class=sum-rows>
+        <p class=r-row><span>Timeline</span><span><b>${weeks.length} weeks</b></span></p>
+        <p class=r-row><span>Pace</span><span>≈ ${cap} h of work per week</span></p>
+        <p class=r-row><span>Launch</span><span>end of week ${weeks.length}</span></p>
+        <p class=r-row><span>After launch</span><span>${esc(support.label)} support · ${support.hours} h</span></p></div>
+      <p class=grp-note>Built from the screens and the options selected above. A tier selection keeps its proposal timeline; change an option and the plan rebuilds.</p>`;
 
     // calendar map: one cell per week, a colour bar showing which groups the week works on
     const CW = 52; const CH = 56; const GAP = 14; const SUPW = 64;
@@ -650,24 +656,15 @@
   }
 
   // ---------- running tally of hours and services ----------
-  // Scrolling past a group adds the whole group. Moving through its carousel instead adds only the
-  // screens actually viewed, plus options the visitor picks; such a group is never added in bulk later.
-  const counted = {}; // group id -> true once its carousel was used: count the cards moved past
-  const picked = new Set(); // decision keys chosen by the visitor
-  const gidOf = (api) => api.sec.id.slice(2);
-  function seen(api, id) {
-    const gid = gidOf(api);
-    if (!D.groups.some((g) => g.id === gid)) return; // the work plan does not count hours
-    if (passed[gid] && !counted[gid]) return; // already counted whole by scrolling past
-    counted[gid] = true;
-    update();
-  }
-
-
+  // Every group shows its hours and services on the line at its bottom. When the bar at the bottom of
+  // the screen reaches that line the group is added; scroll back above it and it is taken off again.
   const out = { hours: document.getElementById('c-hours'), monthly: document.getElementById('c-monthly') };
   const servicesEl = document.getElementById('services');
+  const reportEl = document.getElementById('report');
   const switches = [...document.querySelectorAll('[data-tier]')];
   const pageHours = (pages) => (pages || []).reduce((a, p) => a + (p.h || 0), 0);
+  const range = (a, b) => (a === b ? money(a) : `${money(a)}–${money(b)}`);
+  const svcRange = (set) => { let lo = 0; let hi = 0; set.forEach((x) => { lo += D.services[x].min; hi += D.services[x].max; }); return [lo, hi]; };
 
   // numbers in the bar change with a vertical slide: up when growing, down when shrinking
   const lastVal = new Map();
@@ -688,145 +685,125 @@
     setTimeout(() => old.remove(), 400);
   }
 
-  const reportEl = document.getElementById('c-report');
-  const lastGroup = D.groups[D.groups.length - 1].id;
-  function renderReport(hours, lo, hi) {
-    if (!reportEl || !calcBar) return;
-    const open = !!passed[lastGroup];
-    calcBar.classList.toggle('open', open);
-    reportEl.setAttribute('aria-hidden', String(!open));
-    if (!open) return;
-    const dev = hours * D.rate;
-    const g = D.groups.find((x) => x.id === 'delivery');
-    const sup = g.decisions[0].choices.find((c) => c.id === state[key(g, g.decisions[0])]);
-    const build = Math.max(0, hours - sup.hours); // the timeline covers the build; support comes after launch
-    const weeks = build ? planSpan(build) : 0;
-    const perWeek = weeks ? Math.ceil(build / weeks) : 0;
-    const yLo = lo * 12; const yHi = hi * 12;
-    const range = (a, b) => (a === b ? money(a) : `${money(a)}–${money(b)}`);
-    reportEl.innerHTML = `
-      <div class=r-col><p class=r-h>Cost</p>
-        <p class=r-row><span>Design, development and support</span><span>${hours} h × ${money(D.rate)} = <b>${money(dev)}</b></span></p>
-        <p class=r-row><span>Services, monthly</span><span>${range(lo, hi)} / mo</span></p>
-        <p class=r-row><span>Services, first year</span><span>${range(yLo, yHi)}</span></p>
-        <p class="r-row r-tot"><span>Total for the first year</span><span>${range(dev + yLo, dev + yHi)}</span></p></div>
-      <div class=r-col><p class=r-h>Time</p>
-        <p class=r-row><span>Timeline</span><span><b>${weeks} weeks</b></span></p>
-        <p class=r-row><span>Pace</span><span>≈ ${perWeek} h per week</span></p>
-        <p class=r-row><span>Launch</span><span>end of week ${weeks}</span></p>
-        <p class=r-row><span>Support after launch</span><span>${sup.label} · ${sup.hours} h</span></p></div>`;
+  // what one group costs with the options chosen now
+  function groupTotal(g) {
+    let h = g.hours;
+    const active = new Map(g.pages.map((p) => [p.id, p]));
+    const svc = new Set(g.services || []);
+    const choices = g.decisions.map((d) => {
+      const c = d.choices.find((x) => x.id === state[key(g, d)]);
+      h += c.hours;
+      (c.pages || []).forEach((p) => active.set(p.id, p));
+      (c.services || []).forEach((x) => svc.add(x));
+      return { d, c };
+    });
+    return { h, screens: active.size, active, svc, choices };
   }
 
+  function renderReport(all) {
+    if (!reportEl) return;
+    let hours = 0; let screens = 0;
+    const svc = new Set();
+    const rows = all.map(({ g, t }, i) => {
+      hours += t.h; screens += t.screens; t.svc.forEach((x) => svc.add(x));
+      return `<tr style="--gc:var(--${g.color})"><td class=rn>${String(i + 1).padStart(2, '0')}</td><td>${esc(g.name)}</td>
+        <td class=rs>${t.screens || '—'}</td><td class=rh>${t.h} h</td><td class=rd>${money(t.h * D.rate)}</td></tr>`;
+    }).join('');
+    const [lo, hi] = svcRange(svc);
+    const dev = hours * D.rate;
+    const svcRows = [...svc].map((x) => { const v = D.services[x]; return `<p class=r-row><span>${esc(v.name)}</span><span>${range(v.min, v.max)} / mo</span></p>`; }).join('');
+    reportEl.innerHTML = `<div class=wrap>
+      <p class=kicker>Summary · 1 of 2</p>
+      <h2 class=rep-h>Cost</h2>
+      <div class=rep-big>
+        <div><p class=rb-l>Design, development and support</p><p class=rb-v>${money(dev)}</p><p class=rb-s>${hours} h × ${money(D.rate)} · ${screens} screens</p></div>
+        <div><p class=rb-l>Services</p><p class=rb-v>${range(lo, hi)}<small> / mo</small></p><p class=rb-s>${range(lo * 12, hi * 12)} for the first year</p></div>
+        <div class=rb-tot><p class=rb-l>Total for the first year</p><p class=rb-v>${range(dev + lo * 12, dev + hi * 12)}</p><p class=rb-s>work plus twelve months of services</p></div>
+      </div>
+      <div class=rep-cols>
+        <div><p class=r-h>By group</p><table class=rep-t><thead><tr><th></th><th>Group</th><th class=rs>Screens</th><th class=rh>Hours</th><th class=rd>Cost</th></tr></thead>
+          <tbody>${rows}</tbody><tfoot><tr><td></td><td>Total</td><td class=rs>${screens}</td><td class=rh>${hours} h</td><td class=rd>${money(dev)}</td></tr></tfoot></table></div>
+        <div><p class=r-h>Services, per month</p>${svcRows || '<p class=r-row><span>No paid services</span><span>—</span></p>'}
+          <p class="r-row r-tot"><span>Total</span><span>${range(lo, hi)} / mo</span></p></div>
+      </div></div>`;
+  }
+
+  let reportSig = '';
   function update() {
     let hours = 0;
     const svc = new Set();
-    groups.forEach(({ g, api }) => {
-      let gh = g.hours; let gs = g.pages.length;
-      const activePages = new Map(g.pages.map((p) => [p.id, p]));
-      const choices = g.decisions.map((d) => {
-        const c = d.choices.find((x) => x.id === state[key(g, d)]);
-        gh += c.hours;
-        (c.pages || []).forEach((p) => { if (!activePages.has(p.id)) { activePages.set(p.id, p); gs += 1; } });
-        document.getElementById(`c-${g.id}-${d.id}-${c.id}`).checked = true;
-        return { d, c };
-      });
+    const all = groups.map(({ g, api }) => {
+      const t = groupTotal(g);
+      t.choices.forEach(({ d, c }) => { document.getElementById(`c-${g.id}-${d.id}-${c.id}`).checked = true; });
       if (api) {
-        api.sec.querySelectorAll('.node.xopt, .slide.xopt').forEach((el) => el.classList.toggle('off', !activePages.has(el.dataset.id)));
+        api.sec.querySelectorAll('.node.xopt, .slide.xopt').forEach((el) => el.classList.toggle('off', !t.active.has(el.dataset.id)));
         api.sec.querySelectorAll('.edge').forEach((e) => {
           const keys = (e.dataset.e || '').split(' ').filter(Boolean);
-          const optOff = keys.length > 0 && keys.every((k) => k.split('>').some((id) => allPages[id] && pageGroup[id] === g.id && !activePages.has(id)));
+          const optOff = keys.length > 0 && keys.every((k) => k.split('>').some((id) => allPages[id] && pageGroup[id] === g.id && !t.active.has(id)));
           e.classList.toggle('off', optOff);
         });
       }
-      document.getElementById('g-' + g.id).querySelector('.grp-meta').textContent =
-        `${gs ? `${gs} ${gs === 1 ? 'screen' : 'screens'} · ` : ''}${gh} h`;
-
-      let c = null;
-      if (!api) {
-        if (passed[g.id]) c = 'all';
-        else if (counted[g.id] && reached[g.id]) c = new Set();
-      } else if (counted[g.id]) {
-        if (reached[g.id] && api) {
-          const order = [...api.track.querySelectorAll('.slide')].filter((x) => !x.hidden).map((x) => x.dataset.id);
-          // cards you have moved past count; the current card joins once you scroll down past the group
-          const upto = order.indexOf(api.active);
-          c = new Set(order.slice(0, passed[g.id] ? upto + 1 : upto));
-        }
-      } else if (passed[g.id]) c = 'all';
-      if (c === 'all') {
-        hours += gh;
-        (g.services || []).forEach((x) => svc.add(x));
-        choices.forEach(({ c: ch }) => (ch.services || []).forEach((x) => svc.add(x)));
-      } else if (c) {
-        let any = false;
-        activePages.forEach((p, id) => { if (c.has(id)) { hours += p.h || 0; any = true; } });
-        choices.forEach(({ d, c: ch }) => {
-          if (!picked.has(key(g, d))) return;
-          hours += ch.hours - pageHours(ch.pages); any = true;
-          (ch.services || []).forEach((x) => svc.add(x));
-        });
-        if (any) (g.services || []).forEach((x) => svc.add(x));
-      }
+      const sec = document.getElementById('g-' + g.id);
+      const [slo, shi] = svcRange(t.svc);
+      sec.querySelector('.gf-s').textContent = t.screens ? `${t.screens} ${t.screens === 1 ? 'screen' : 'screens'}` : 'No screens of its own';
+      sec.querySelector('.gf-h').textContent = `+${t.h} h`;
+      sec.querySelector('.gf-m').textContent = t.svc.size ? `+${range(slo, shi)} / mo services` : '+$0 services';
+      sec.querySelector('.grp-foot').classList.toggle('on', !!passed[g.id]);
+      if (passed[g.id]) { hours += t.h; t.svc.forEach((x) => svc.add(x)); }
+      return { g, t };
     });
-    let lo = 0; let hi = 0;
-    const rows = [];
-    svc.forEach((x) => {
-      const v = D.services[x]; lo += v.min; hi += v.max;
-      rows.push(`<li><span>${esc(v.name)}</span><span>${v.min === v.max ? money(v.min) : `${money(v.min)}–${money(v.max)}`}</span></li>`);
-    });
+    const [lo, hi] = svcRange(svc);
     roll(out.hours, String(hours), hours);
-    renderReport(hours, lo, hi);
-    roll(out.monthly, svc.size ? `${money(lo)}–${money(hi)} / mo` : '—', lo);
-    if (servicesEl) servicesEl.innerHTML = (rows.join('') || '<li><span>Nothing counted yet: scroll or open screens above</span></li>')
-      + (svc.size ? `<li class=tot><span>Total</span><span>${money(lo)}–${money(hi)} / month</span></li>` : '');
+    roll(out.monthly, svc.size ? `${range(lo, hi)} / mo` : '—', lo);
+    if (servicesEl) {
+      const rows = [...svc].map((x) => { const v = D.services[x]; return `<li><span>${esc(v.name)}</span><span>${range(v.min, v.max)}</span></li>`; });
+      servicesEl.innerHTML = (rows.join('') || '<li><span>Nothing counted yet: scroll down through the groups</span></li>')
+        + (svc.size ? `<li class=tot><span>Total</span><span>${range(lo, hi)} / month</span></li>` : '');
+    }
+    const sig = JSON.stringify(state);
+    if (sig !== reportSig) { reportSig = sig; renderReport(all); }
     const t = matchingTier();
     switches.forEach((b) => b.setAttribute('aria-pressed', String(!!t && b.dataset.tier === t.id)));
     renderPlan();
   }
   function setTier(tid) { Object.assign(state, defaults(tid)); update(); }
 
-  // the tally follows the scroll position: a group counts once you have scrolled into / past it,
-  // and stops counting when you scroll back above it
-  const reached = {}; const passed = {};
+  // a group counts once the top of the bar reaches the line at the bottom of that group
+  const passed = {};
   const calcBar = document.querySelector('.calc');
   const barTop = () => (calcBar ? calcBar.getBoundingClientRect().top : window.innerHeight);
   function measure() {
     let changed = false;
     const line = barTop();
-    groups.forEach(({ g }, i) => {
-      const r = document.getElementById('g-' + g.id).getBoundingClientRect();
-      // a group starts at its divider line and ends at the next group's divider line
-      const next = groups[i + 1] ? document.getElementById('g-' + groups[i + 1].g.id).getBoundingClientRect().top : r.bottom;
-      const re = r.top < line; const pa = next < line;
-      if (re !== !!reached[g.id] || pa !== !!passed[g.id]) { reached[g.id] = re; passed[g.id] = pa; changed = true; }
+    groups.forEach(({ g }) => {
+      const r = document.getElementById('g-' + g.id).querySelector('.grp-foot').getBoundingClientRect();
+      const pa = r.bottom <= line;
+      if (pa !== !!passed[g.id]) { passed[g.id] = pa; changed = true; }
     });
+    // the summary page takes over from the bar: the bar slides away once the summary reaches it
+    if (calcBar && reportEl) calcBar.classList.toggle('docked', reportEl.getBoundingClientRect().top < window.innerHeight - 40);
     return changed;
   }
   let vraf = 0;
-  window.addEventListener('scroll', () => {
-    cancelAnimationFrame(vraf);
-    vraf = requestAnimationFrame(() => { if (measure()) update(); });
-  }, { passive: true });
+  const onMove = () => { cancelAnimationFrame(vraf); vraf = requestAnimationFrame(() => { if (measure()) update(); }); };
+  window.addEventListener('scroll', onMove, { passive: true });
+  window.addEventListener('resize', onMove);
 
   root.addEventListener('change', (e) => {
     if (e.target.type !== 'radio') return;
     state[e.target.name] = e.target.value;
-    const gid = e.target.name.split('.')[0];
-    picked.add(e.target.name);
-    if (!counted[gid] && !passed[gid]) {
-      const gr = groups.find((x) => x.g.id === gid);
-      counted[gid] = true;
-    }
     update();
+    measure();
   });
   switches.forEach((b) => b.addEventListener('click', () => setTier(b.dataset.tier)));
   D.groups.forEach((g) => g.decisions.forEach((d) => { state[key(g, d)] = d.choices[0].id; }));
+  update();
   measure();
   update();
 
   // ---------- jump arrows top-right: section to section, or straight to the top / bottom ----------
   const jumpTargets = () => [document.getElementById('top'), document.getElementById('builder'),
-    ...document.querySelectorAll('#groups > .grp, #g-plan, .services-box, details.prop, #team')].filter(Boolean);
+    ...document.querySelectorAll('#groups > .grp, #report, #g-plan, .services-box, details.prop, #team')].filter(Boolean);
   const scrollToEl = (el) => window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 12, behavior: reduce ? 'auto' : 'smooth' });
   document.querySelectorAll('[data-jump]').forEach((btn) => btn.addEventListener('click', () => {
     const k = btn.dataset.jump;

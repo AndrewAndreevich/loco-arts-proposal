@@ -74,9 +74,12 @@ BUILDER = """
 <section id=builder class=builder aria-labelledby=builder-h><div class=wrap>
 <p class=kicker>Tier builder</p>
 <h2 id=builder-h data-split>Every group of screens, and how each tier changes it</h2>
-<p class=big>Each group is a set of screens with their transitions, and options showing which tier uses which solution. The bar below adds up hours and monthly services as you go: scrolling past a group adds all of it; opening its screens one by one adds only the screens you look at and the options you pick. Arrows top-right jump section to section.</p>
+<p class=big>Each group is a set of screens with their transitions, and options showing which tier uses which solution. Each group ends with a line showing what it adds; when the bar at the bottom of the screen reaches that line, the group's hours and monthly services are added, and the options you pick change them. Arrows top-right jump section to section.</p>
 <div class=legend aria-hidden=true><span class="td td-E">Essential</span><span class="td td-S">Signature</span><span class="td td-F">Flagship</span><span class="td td-alt">Alternative</span><span class=legend-dash>dashed screen = comes with an option</span></div>
 <div id=groups></div>
+</div></section>
+<section id=report class=report aria-label="Cost summary"></section>
+<section class=builder-2><div class=wrap>
 <div id=plan></div>
 <noscript><p class=big>The tier builder needs JavaScript. The full proposal follows below.</p></noscript>
 <div class="grp services-box reveal" style="--gc:var(--yellow)"><div class=grp-head><span class=grp-n>€</span><h3>Monthly services for the chosen options</h3></div><ul id=services class=svc></ul></div>
@@ -84,8 +87,6 @@ BUILDER = """
 <div class=calc role=region aria-label="Running tally"><div class=calc-in>
 <span class=c-cell><span class=c-l>Hours</span><span id=c-hours class=c-v aria-live=polite>0</span></span>
 <span class=c-cell><span class=c-l>Services</span><span id=c-monthly class=c-v>—</span></span>
-</div>
-<div id=c-report class=calc-report aria-hidden=true><div class=calc-in-r></div>
 </div></div>
 """
 src = src.replace(strip, "")

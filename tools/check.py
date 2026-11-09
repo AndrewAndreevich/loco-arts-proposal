@@ -14,7 +14,7 @@ OUT = Path(sys.argv[2]); OUT.mkdir(parents=True, exist_ok=True)
 new = (ROOT / "index.html").as_uri()
 
 TEXT_JS = """() => { document.querySelectorAll('details').forEach(d => d.open = true);
-  document.querySelectorAll('#builder, .calc, summary.prop-sum').forEach(e => e.remove());
+  document.querySelectorAll('#builder, #report, .builder-2, .calc, summary.prop-sum').forEach(e => e.remove());
   return [...document.querySelectorAll('main, footer')].map(e => e.innerText).join('\\n'); }"""
 
 
