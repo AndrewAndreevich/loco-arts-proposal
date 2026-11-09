@@ -351,8 +351,7 @@
     gr.api.sec.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
     slideTo(gr.api, id);
   }
-  groups.forEach(({ api }) => {
-    if (!api) return;
+  function wire(api) {
     let raf = 0;
     api.track.addEventListener('scroll', () => {
       cancelAnimationFrame(raf);
@@ -396,7 +395,8 @@
       if (t && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); t.dispatchEvent(new MouseEvent('click', { bubbles: true })); }
     });
     setActive(api, api.screens[0].id);
-  });
+  }
+  groups.forEach(({ api }) => { if (api) wire(api); });
 
   // ---------- phones: options become cards in the carousel ----------
   const phone = window.matchMedia('(max-width: 720px)');
@@ -413,6 +413,147 @@
   placeDecs();
   phone.addEventListener('change', placeDecs);
 
+  // ---------- work plan: base screens + the options selected above, packed into weeks ----------
+  // Same visual language as the groups: a calendar row of weeks (the map) and a carousel of week cards.
+  const planRoot = document.getElementById('plan');
+  let planSig = '';
+  const KICKOFF = 12; // hours of the delivery group spent on kick-off and setup in week 1
+
+  function planPackages() {
+    const G = Object.fromEntries(D.groups.map((g) => [g.id, g]));
+    const pick = (gid, did) => {
+      const g = G[gid]; const d = g.decisions.find((x) => x.id === did);
+      return d.choices.find((c) => c.id === state[key(g, d)]);
+    };
+    const pk = [];
+    const add = (gid, label, hours) => { if (hours > 0) pk.push({ gid, color: G[gid].color, label, hours }); };
+    add('delivery', 'Kick-off, content model, repository, staging, hosting', KICKOFF);
+    const concepts = pick('design', 'concepts'); add('design', `Design: ${concepts.label}`, concepts.hours);
+    add('cms', 'CMS: collections, roles, drafts, versions', G.cms.hours);
+    const lang = pick('lang', 'translation'); add('lang', `EN / GE: ${lang.label}`, lang.hours);
+    ['home', 'artists', 'artworks', 'exhibitions', 'programs', 'calls', 'studios', 'tours', 'about', 'utility', 'membership', 'myloco'].forEach((gid) => {
+      const g = G[gid];
+      const active = new Map(g.pages.map((p) => [p.id, p]));
+      const extra = [];
+      g.decisions.forEach((d) => {
+        const c = d.choices.find((x) => x.id === state[key(g, d)]);
+        (c.pages || []).forEach((p) => active.set(p.id, p));
+        const rest = c.hours - pageHours(c.pages);
+        if (rest > 0) extra.push([c.label, rest]);
+      });
+      const ph = [...active.values()].reduce((a, p) => a + (p.h || 0), 0);
+      add(gid, `${g.name}: ${active.size} ${active.size === 1 ? 'screen' : 'screens'}`, ph);
+      extra.forEach(([label, h]) => add(gid, `${g.name}: ${label}`, h));
+    });
+    const reporting = pick('cms', 'reporting'); add('cms', `CMS: ${reporting.label}`, reporting.hours);
+    const motion = pick('design', 'motion'); add('design', `Motion: ${motion.label}`, motion.hours);
+    add('delivery', 'QA on real devices, accessibility, performance, SEO, CMS training', G.delivery.hours - KICKOFF);
+    return { pk, support: pick('delivery', 'support') };
+  }
+
+  function planWeeks(pk) {
+    const cap = D.hoursPerWeek;
+    const weeks = [[]]; let used = 0;
+    pk.forEach((p) => {
+      let rem = p.hours;
+      while (rem > 0) {
+        if (used >= cap) { weeks.push([]); used = 0; }
+        const take = Math.min(rem, cap - used);
+        weeks[weeks.length - 1].push({ ...p, hours: take, split: take < p.hours });
+        used += take; rem -= take;
+      }
+    });
+    return weeks;
+  }
+
+  function renderPlan() {
+    if (!planRoot) return;
+    const sig = JSON.stringify(state);
+    if (sig === planSig) return;
+    planSig = sig;
+    const { pk, support } = planPackages();
+    const weeks = planWeeks(pk);
+    const total = pk.reduce((a, p) => a + p.hours, 0);
+    const cap = D.hoursPerWeek;
+    planRoot.innerHTML = '';
+
+    const sec = document.createElement('section');
+    sec.className = 'grp plan in';
+    sec.id = 'g-plan';
+    sec.style.setProperty('--gc', 'var(--yellow)');
+    sec.innerHTML = `<div class=grp-head><span class=grp-n>W</span><h3>Work plan</h3>
+      <p class=grp-meta>${weeks.length} weeks · ${total} h</p></div>
+      <p class=grp-note>Built from the screens and the options selected above, about ${cap} h of work per week. Change an option and the plan rebuilds.</p>`;
+
+    // calendar map: one cell per week, a colour bar showing which groups the week works on
+    const CW = 52; const CH = 56; const GAP = 14; const SUPW = 64;
+    const W = weeks.length * (CW + GAP) + SUPW + 4;
+    const box = document.createElement('div');
+    box.className = 'map';
+    const s = svg('svg', { viewBox: `-2 -2 ${W} ${CH + 6}`, width: W, height: CH + 6, role: 'group', 'aria-label': 'Work plan calendar' }, box);
+    const gEdges = svg('g', { class: 'edges' }, s);
+    const gNodes = svg('g', { class: 'nodes' }, s);
+    const cell = (id, x, w, label, title, items, dashed) => {
+      const gg = svg('g', { class: 'node week' + (dashed ? ' ghost' : ''), transform: `translate(${x} 0)`, tabindex: 0, role: 'button', 'aria-label': title }, gNodes);
+      gg.dataset.id = id;
+      svg('title', {}, gg).textContent = title;
+      svg('rect', { class: 'pg', width: w, height: CH, rx: 4 }, gg);
+      const t = svg('text', { x: 7, y: 17 }, gg); t.textContent = label;
+      let bx = 6; const bw = w - 12;
+      (items || []).forEach((it) => {
+        const seg = Math.max(1.5, (it.hours / cap) * bw);
+        svg('rect', { class: 'seg', x: bx, y: CH - 14, width: seg, height: 7, rx: 1.5, style: `fill:var(--${it.color})` }, gg);
+        bx += seg;
+      });
+    };
+    weeks.forEach((items, i) => {
+      const x = i * (CW + GAP);
+      if (i) svg('path', { d: `M${x - GAP + 1} ${CH / 2} L${x - 3} ${CH / 2}`, class: 'edge', 'data-a': `w${i}`, 'data-b': `w${i + 1}` }, gEdges);
+      const hours = items.reduce((a, it) => a + it.hours, 0);
+      cell(`w${i + 1}`, x, CW, `W${i + 1}`, `Week ${i + 1} · ${hours} h`, items, false);
+    });
+    const sx = weeks.length * (CW + GAP);
+    svg('path', { d: `M${sx - GAP + 1} ${CH / 2} L${sx - 3} ${CH / 2}`, class: 'edge ext' }, gEdges);
+    cell('sup', sx, SUPW, `+${support.label.replace(' days', 'd')}`, `After launch: ${support.label} support`, null, true);
+    sec.appendChild(box);
+
+    // week cards
+    const wrapEl = document.createElement('div'); wrapEl.className = 'slider';
+    const track = document.createElement('div');
+    track.className = 'track'; track.tabIndex = 0;
+    track.setAttribute('role', 'region'); track.setAttribute('aria-label', 'Weeks of the work plan, scroll sideways');
+    const n = weeks.length + 1;
+    weeks.forEach((items, i) => {
+      const hours = items.reduce((a, it) => a + it.hours, 0);
+      const last = i === weeks.length - 1;
+      const groupsIn = [...new Set(items.map((it) => D.groups.find((g) => g.id === it.gid).name))];
+      const sl = document.createElement('article');
+      sl.className = 'slide week-card';
+      sl.dataset.id = `w${i + 1}`;
+      sl.innerHTML = `<div class=s-head><p class=s-top><span class=s-kind>Week</span><span class=s-id>W${i + 1}</span><span class=s-n>${i + 1} / ${n}</span><span class=s-h>${hours} h</span></p>
+        <h4>${last ? 'Final QA and launch' : esc(groupsIn.slice(0, 2).join(' · ') + (groupsIn.length > 2 ? ' +' + (groupsIn.length - 2) : ''))}</h4></div>
+        <ul class=plan-items>${items.map((it) => `<li style="--ic:var(--${it.color})"><span class=pi-l>${esc(it.label)}${it.split ? ' <em>(part)</em>' : ''}</span><span class=pi-h>${it.hours} h</span></li>`).join('')}</ul>
+        <div class=plan-bar aria-hidden=true>${items.map((it) => `<i style="flex:${it.hours};background:var(--${it.color})"></i>`).join('')}${hours < cap ? `<i class=free style="flex:${cap - hours}"></i>` : ''}</div>`;
+      track.appendChild(sl);
+    });
+    const sup = document.createElement('article');
+    sup.className = 'slide week-card';
+    sup.dataset.id = 'sup';
+    sup.innerHTML = `<div class=s-head><p class=s-top><span class=s-kind>After launch</span><span class=s-n>${n} / ${n}</span><span class=s-h>${support.hours} h</span></p>
+      <h4>${esc(support.label)} support</h4></div>
+      <ul class=plan-items><li style="--ic:var(--lime)"><span class=pi-l>Fixes, small changes and questions from the LOCO team</span><span class=pi-h>${support.hours} h</span></li></ul>`;
+    track.appendChild(sup);
+    const arrow = (d) => `<svg viewBox="0 0 10 10" width="10" height="10" aria-hidden="true"><path d="${d}"/></svg>`;
+    const prev = Object.assign(document.createElement('button'), { type: 'button', className: 'nav prev', innerHTML: arrow('M7 1 L2 5 L7 9 Z') });
+    const next = Object.assign(document.createElement('button'), { type: 'button', className: 'nav next', innerHTML: arrow('M3 1 L8 5 L3 9 Z') });
+    prev.setAttribute('aria-label', 'Previous week'); next.setAttribute('aria-label', 'Next week');
+    wrapEl.append(track, prev, next);
+    sec.appendChild(wrapEl);
+    planRoot.appendChild(sec);
+    const ids = [...weeks.map((_, i) => `w${i + 1}`), 'sup'];
+    wire({ sec, track, prev, next, wrapEl, screens: ids.map((id) => ({ id })) });
+  }
+
   // ---------- running tally of hours and services ----------
   // Scrolling past a group adds the whole group. Moving through its carousel instead adds only the
   // screens actually viewed, plus options the visitor picks; such a group is never added in bulk later.
@@ -421,6 +562,7 @@
   const gidOf = (api) => api.sec.id.slice(2);
   function seen(api, id) {
     const gid = gidOf(api);
+    if (!D.groups.some((g) => g.id === gid)) return; // the work plan does not count hours
     if (counted[gid] === 'all' || id.startsWith('dec:')) return;
     if (!counted[gid]) counted[gid] = new Set([api.active]);
     counted[gid].add(id);
@@ -483,6 +625,7 @@
       + (svc.size ? `<li class=tot><span>Total</span><span>${money(lo)}–${money(hi)} / month</span></li>` : '');
     const t = matchingTier();
     switches.forEach((b) => b.setAttribute('aria-pressed', String(!!t && b.dataset.tier === t.id)));
+    renderPlan();
   }
   function setTier(tid) { Object.assign(state, defaults(tid)); update(); }
 

@@ -8,7 +8,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Crect width=%27100%27 height=%2756%27 y=%2722%27 rx=%2728%27 fill=%27%23FF54A6%27/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://framerusercontent.com" crossorigin>
 <link rel="preload" href="https://framerusercontent.com/assets/5uijHrcLgMOtvBU399PIdv0X2Yo.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="styles.css?v=2f2af636">
+<link rel="stylesheet" href="styles.css?v=8da39f4e">
 <meta name="theme-color" content="#000000">
 </head>
 <body>
@@ -45,6 +45,7 @@
 <p class=big>Each group is a set of screens with their transitions, and options showing which tier uses which solution. The bar below adds up hours and monthly services as you go: scrolling past a group adds all of it; opening its screens one by one adds only the screens you look at and the options you pick. Tiers 1 / 2 / 3 switch the options.</p>
 <div class=legend aria-hidden=true><span class="td td-E">Essential</span><span class="td td-S">Signature</span><span class="td td-F">Flagship</span><span class="td td-alt">Alternative</span><span class=legend-dash>dashed screen = comes with an option</span></div>
 <div id=groups></div>
+<div id=plan></div>
 <noscript><p class=big>The tier builder needs JavaScript. The full proposal follows below.</p></noscript>
 <div class="grp services-box reveal" style="--gc:var(--yellow)"><div class=grp-head><span class=grp-n>€</span><h3>Monthly services for the chosen options</h3></div><ul id=services class=svc></ul></div>
 </div></section>
@@ -53,6 +54,7 @@
 <span class=c-cell><span class=c-l>Services</span><span id=c-monthly class=c-v>—</span></span>
 </div></div>
 
+<details class="prop " id=d-approach><summary class=prop-sum><span class=wrap><span class=prop-k>How we read the brief</span><span class=prop-t>One platform, three levels of ambition</span><span class=prop-pl aria-hidden=true></span></span></summary>
 <section id=approach><div class=wrap>
 <p class=kicker>How we read the brief</p>
 <h2 data-split>One platform, three levels of ambition</h2>
@@ -63,7 +65,9 @@
 <div class=col><h4>Enter once</h4><ul><li>Artwork Archive stays the source of truth</li><li>Structured CMS, not a page builder</li><li>EN / GE from launch</li></ul></div>
 </div>
 </div></section>
+</details>
 
+<details class="prop tier" id=d-essential><summary class=prop-sum><span class=wrap><span class=prop-k>Tier 1</span><span class=prop-t>Essential — 6 weeks · 49 screens</span><span class=prop-pl aria-hidden=true></span></span></summary>
 <section id=essential class=tier><div class=wrap>
 <div class="opener reveal"><div class=badge>1</div><h2 data-split>Essential</h2><div class=sub><span class=pill>6 weeks</span><span class=pill>49 screens</span><p class=big>The complete brief: every required screen and function, final design from the Brand Book, on a reliable modern stack.</p></div></div>
 
@@ -115,7 +119,9 @@
 <div class="timeline reveal" aria-label="Essential timeline: weeks 1 to 6"><i class=e>M1</i><i class=e>M2</i><i class=e>M3</i><i class=e>M4</i><i class=e>M5</i><i class=e>M6</i><i class=off>M7</i><i class=off>M8</i><i class=off>M9</i><i class=off>M10</i><i class=off>M11</i><i class=off>M12</i></div>
 <div class="weeks reveal"><div class="wk e"><div class=wkn>M1</div><div class=wkb><ul><li>Kick-off workshop, content model, sitemap</li><li>UI kit and design of Homepage, Artists, Artworks</li><li>Repository, CI, staging server, hosting</li><li>CMS skeleton, roles</li><li>Artwork Archive sync method confirmed with Artwork Archive</li><li>Bank merchant onboarding started by LOCO</li></ul><p class=wkd>Approved design direction; staging online</p></div></div><div class="wk e"><div class=wkn>M2</div><div class=wkb><ul><li>Design: Exhibitions, Programs, Open Calls, Studios, Membership, About</li><li>Frontend: Homepage, Artists, Artworks, Exhibitions</li><li>Artwork Archive import running</li><li>CMS collections for all public content</li></ul><p class=wkd>Staging with real artists and artworks</p></div></div><div class="wk e"><div class=wkn>M3</div><div class=wkb><ul><li>Frontend: Programs with registration, Open Calls with application, Studios with floor plans and application, Membership page, Art Tours, About, Partners & Sponsors</li><li>Search, forms, newsletter, EN / GE with AI translation</li><li>SEO, analytics, cookie consent</li><li>QA, CMS training session 1</li></ul><p class=wkd><b>Public website live</b></p></div></div><div class="wk e"><div class=wkn>M4</div><div class=wkb><ul><li>Design of My LOCO screens</li><li>Accounts, sign-in, password reset</li><li>Access codes: generation and activation</li><li>My LOCO dashboard, registrations and applications, benefits</li></ul><p class=wkd>Members can activate with codes</p></div></div><div class="wk e"><div class=wkn>M5</div><div class=wkb><ul><li>Online payment (Bank of Georgia / TBC), checkout, receipts, expiry reminders</li><li>Members-only opportunities database</li><li>Video archive on Mux</li><li>Transactional e-mails EN / GE</li></ul><p class=wkd>Online membership and members-only content live</p></div></div><div class="wk e"><div class=wkn>M6</div><div class=wkb><ul><li>Full QA on real devices</li><li>Accessibility, performance and security review, backups</li><li>Open-Air Gallery and Art Tours prepared (unpublished)</li><li>Documentation, CMS training session 2</li></ul><p class=wkd><b>Essential complete</b>; 30-day support begins</p></div></div></div>
 </div></section>
+</details>
 
+<details class="prop tier t2" id=d-signature><summary class=prop-sum><span class=wrap><span class=prop-k>Tier 2</span><span class=prop-t>Signature — 8 weeks · 51 screens</span><span class=prop-pl aria-hidden=true></span></span></summary>
 <section id=signature class="tier t2"><div class=wrap>
 <div class="opener reveal"><div class=badge>2</div><h2 data-split>Signature</h2><div class=sub><span class=pill>8 weeks</span><span class=pill>51 screens</span><p class=big>Everything in Essential, plus deeper art direction and richer tools for visitors and the team.</p></div></div>
 <h3 class=mt0>Added to Essential</h3>
@@ -128,7 +134,9 @@
 <div class="timeline reveal" aria-label="Signature timeline: weeks 1 to 8"><i class=e>M1</i><i class=e>M2</i><i class=e>M3</i><i class=e>M4</i><i class=e>M5</i><i class=e>M6</i><i class=s>M7</i><i class=s>M8</i><i class=off>M9</i><i class=off>M10</i><i class=off>M11</i><i class=off>M12</i></div>
 <div class="weeks reveal"><div class="wk s"><div class=wkn>M1–M2</div><div class=wkb><ul><li>2–3 visual concepts presented in M1 alongside Essential work; chosen concept carried through all screens</li></ul><p class=wkd>Chosen visual concept</p></div></div><div class="wk s"><div class=wkn>M7</div><div class=wkb><ul><li>Design system documentation</li><li>Micro-interactions across the site</li><li>Deep-zoom artwork viewer</li><li>Translation review workflow</li></ul><p class=wkd>Signature design layer live</p></div></div><div class="wk s"><div class=wkn>M8</div><div class=wkb><ul><li>Interactive 2D LOCO Park masterplan</li><li>Admin reporting dashboard</li><li>Final QA and handover</li></ul><p class=wkd><b>Signature complete</b>; 60-day support begins</p></div></div></div>
 </div></section>
+</details>
 
+<details class="prop tier t3" id=d-flagship><summary class=prop-sum><span class=wrap><span class=prop-k>Tier 3</span><span class=prop-t>Flagship — 12 weeks · 54 screens</span><span class=prop-pl aria-hidden=true></span></span></summary>
 <section id=flagship class="tier t3"><div class=wrap>
 <div class="opener reveal"><div class=badge>3</div><h2 data-split>Flagship</h2><div class=sub><span class=pill>12 weeks</span><span class=pill>54 screens</span><p class=big>Everything in Signature, plus a photoreal 3D layer of LOCO Park, ready for the 2027 Open-Air launch.</p></div></div>
 <h3 class=mt0>Added to Signature</h3>
@@ -142,13 +150,17 @@
 <div class="weeks reveal"><div class="wk f"><div class=wkn>M9</div><div class=wkb><ul><li>Drone and ground capture of LOCO Park</li><li>3D capture of one Hall 11 exhibition</li><li>Recurring membership payments</li></ul><p class=wkd>Raw captures; auto-renewal live</p></div></div><div class="wk f"><div class=wkn>M10</div><div class=wkb><ul><li>Gaussian Splatting processing, compression and level of detail</li><li>3D web viewer</li><li>Premium motion: card-to-detail transitions, kinetic logo, custom cursor, scroll-driven hero</li></ul><p class=wkd>3D viewer on staging</p></div></div><div class="wk f"><div class=wkn>M11</div><div class=wkb><ul><li>Hotspots linked to CMS works, artists and programs</li><li>Mobile optimisation and 2D fallback</li><li>Open-Air QR system</li><li>Exhibition 3D visit page</li></ul><p class=wkd>3D park and QR system on staging</p></div></div><div class="wk f"><div class=wkn>M12</div><div class=wkb><ul><li>Device and performance QA of 3D features</li><li>Final polish and handover</li></ul><p class=wkd><b>Flagship complete</b>; 90-day support begins</p></div></div></div>
 <p class=small>Capture dates depend on weather and drone flight permission; capture can move closer to the Open-Air launch without affecting other milestones.</p>
 </div></section>
+</details>
 
+<details class="prop " id=d-compare><summary class=prop-sum><span class=wrap><span class=prop-k>Side by side</span><span class=prop-t>Tier comparison</span><span class=prop-pl aria-hidden=true></span></span></summary>
 <section id=compare><div class=wrap>
 <p class=kicker>Side by side</p>
 <h2 data-split>Tier comparison</h2>
 <div class="tw reveal"><table class=cmp><thead><tr><th>Feature</th><th>Essential</th><th>Signature</th><th>Flagship</th></tr></thead><tbody><tr><td>Complete brief — all required screens and functions</td><td><span class=y>●</span></td><td><span class=y>●</span></td><td><span class=y>●</span></td></tr><tr><td>Final UI design from the Brand Book, 3 breakpoints, all states</td><td><span class=y>●</span></td><td><span class=y>●</span></td><td><span class=y>●</span></td></tr><tr><td>Visual concepts</td><td>1</td><td>2–3</td><td>2–3</td></tr><tr><td>Base motion</td><td><span class=y>●</span></td><td><span class=y>●</span></td><td><span class=y>●</span></td></tr><tr><td>Design system and micro-interactions</td><td><span class=no>—</span></td><td><span class=y>●</span></td><td><span class=y>●</span></td></tr><tr><td>EN / GE with AI translation</td><td><span class=y>●</span></td><td><span class=y>●</span></td><td><span class=y>●</span></td></tr><tr><td>Translation review workflow</td><td><span class=no>—</span></td><td><span class=y>●</span></td><td><span class=y>●</span></td></tr><tr><td>Meilisearch, Artwork Archive sync, Mux video</td><td><span class=y>●</span></td><td><span class=y>●</span></td><td><span class=y>●</span></td></tr><tr><td>Payments (BOG / TBC) and access codes</td><td><span class=y>●</span></td><td><span class=y>●</span></td><td><span class=y>●</span></td></tr><tr><td>Recurring membership payments</td><td><span class=no>—</span></td><td><span class=no>—</span></td><td><span class=y>●</span></td></tr><tr><td>Interactive 2D park masterplan</td><td><span class=no>—</span></td><td><span class=y>●</span></td><td><span class=y>●</span></td></tr><tr><td>Deep-zoom artwork viewer</td><td><span class=no>—</span></td><td><span class=y>●</span></td><td><span class=y>●</span></td></tr><tr><td>Admin reporting</td><td><span class=no>—</span></td><td><span class=y>●</span></td><td><span class=y>●</span></td></tr><tr><td>LOCO Park in 3D (Gaussian Splatting)</td><td><span class=no>—</span></td><td><span class=no>—</span></td><td><span class=y>●</span></td></tr><tr><td>Open-Air QR system</td><td><span class=no>—</span></td><td><span class=no>—</span></td><td><span class=y>●</span></td></tr><tr><td>3D capture of one Hall 11 exhibition</td><td><span class=no>—</span></td><td><span class=no>—</span></td><td><span class=y>●</span></td></tr><tr><td>Premium motion</td><td><span class=no>—</span></td><td><span class=no>—</span></td><td><span class=y>●</span></td></tr><tr><td>Screens</td><td>49</td><td>51</td><td>54</td></tr><tr><td>Timeline</td><td>6 weeks</td><td>8 weeks</td><td>12 weeks</td></tr><tr><td>Support after launch</td><td>30 days</td><td>60 days</td><td>90 days</td></tr></tbody></table></div>
 </div></section>
+</details>
 
+<details class="prop " id=d-prices><summary class=prop-sum><span class=wrap><span class=prop-k>Investment</span><span class=prop-t>Prices</span><span class=prop-pl aria-hidden=true></span></span></summary>
 <section id=prices><div class=wrap>
 <p class=kicker>Investment</p>
 <h2 data-split>Prices</h2>
@@ -166,6 +178,7 @@
 <div class=col><h4>Not included</h4><ul><li>Copywriting and human translation</li><li>Photo and video production, incl. hero video</li><li>Third-party subscriptions</li><li>Artwork checkout, native apps</li></ul></div>
 </div>
 </div></section>
+</details>
 
 <section id=team><div class=wrap>
 <p class=kicker>Who builds it</p>
@@ -181,7 +194,7 @@
 <footer><span>LOCO Arts — website proposal, November 2026</span><span>LOCO Park, 84 David Guramishvili Avenue, Tbilisi</span></footer>
 <script src="data/tiers.js?v=a456c9b9" defer></script>
 <script src="data/pages-desc.js?v=e5ec7905" defer></script>
-<script src="builder.js?v=d97863b5" defer></script>
+<script src="builder.js?v=2ef6643d" defer></script>
 <script src="main.js?v=1a032fc3" defer></script>
 </body>
 </html>
