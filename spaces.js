@@ -17,6 +17,11 @@
   // a room through time: each period (an exhibition, an artist's residency) is one 3D scan of the room,
   // seen from 6 angles; dragging the timeline turns the scan and then moves on to the next period's scan
   const VIEWS = 6;
+  // short dates for narrow screens: "Mar–May 26", "Sep 26 – Feb 27"
+  const short = (a, b) => {
+    const [m1, y1] = a.split(' '); const [m2, y2] = b.split(' ');
+    return y1 === y2 ? `${m1}–${m2} ${y2.slice(2)}` : `${m1} ${y1.slice(2)} – ${m2} ${y2.slice(2)}`;
+  };
   const timeline = (id, periods) => {
     const steps = periods.length * VIEWS;
     return `<div class=otl data-otl=${id}>
@@ -28,7 +33,7 @@
       </div>
       <div class=otl-now><b class=otl-who></b><span class=otl-what></span><span class=otl-dates></span><span class=otl-phase></span></div>
       <div class=otl-bar>
-        <div class=otl-segs>${periods.map((p) => `<div class=otl-seg style="--c:var(--${p.color})"><span class=otl-name>${esc(p.who)}</span><span class=otl-d>${esc(p.from)} – ${esc(p.to)}</span>
+        <div class=otl-segs>${periods.map((p) => `<div class=otl-seg style="--c:var(--${p.color})"><span class=otl-name>${esc(p.who)}</span><span class=otl-d>${esc(p.from)} – ${esc(p.to)}</span><span class=otl-ds>${esc(short(p.from, p.to))}</span>
           <span class=otl-phs>${p.phases.map((x) => `<i title="${esc(x)}"></i>`).join('')}</span></div>`).join('')}</div>
         <input class=otl-r type=range min=0 max=${steps - 1} step=1 value=0 aria-label="Move through time">
       </div>

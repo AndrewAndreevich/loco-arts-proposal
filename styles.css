@@ -923,3 +923,15 @@ html.feat-open { overflow: hidden; }
 @media (max-width: 600px) { .otl-phase { margin-left: 0; } .otl-name { font-size: 13px; } .otl-who { font-size: 19px; } }
 @media (prefers-reduced-motion: reduce) { .otl-img { transition: none; } }
 .otl-phase[hidden] { display: none; }
+/* timeline periods stay inside their boxes on phones: short dates, names cut with an ellipsis */
+.otl-seg { overflow: hidden; }
+.otl-ds { display: none; font-size: 12px; color: var(--mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.otl-d { overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 600px) {
+  .otl-segs { gap: 3px; }
+  .otl-seg { padding: 7px 7px 20px; }
+  .otl-phs { left: 7px; right: 7px; bottom: 7px; }
+  .otl-d { display: none; }
+  .otl-ds { display: block; }
+  .otl-name { font-size: 12px; }
+}
