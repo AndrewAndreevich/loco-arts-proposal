@@ -54,14 +54,14 @@
   // wireframes on a real grid: rows of equal cells, pill buttons, aligned text lines
   const cells = (n, cls = 'wb') => `<i class="${cls}"></i>`.repeat(n);
   const WF = {
-    home: `<i class="wb wacc" style="height:38%"></i><span class="wr wc3" style="height:22%">${cells(3)}</span><span class="wr wc4" style="height:14%">${cells(4)}</span><i class="wl w60"></i>`,
-    list: `<i class="wl wacc w30"></i><span class="wr wc4">${cells(4, 'wp')}</span><span class="wr wc4 wg2" style="height:52%">${cells(8)}</span>`,
-    detail: `<span class="wr wc2" style="height:52%"><i class="wb wacc"></i><span class=wcol><i class="wl w90"></i><i class="wl w70"></i><i class="wl w80"></i><i class="wl w50"></i><i class="wp wacc w50"></i></span></span><span class="wr wc4" style="height:20%">${cells(4)}</span>`,
+    home: `<i class="wb wacc" style="flex:38 1 0"></i><span class="wr wc3" style="flex:22 1 0">${cells(3)}</span><span class="wr wc4" style="flex:14 1 0">${cells(4)}</span><i class="wl w60"></i>`,
+    list: `<i class="wl wacc w30"></i><span class="wr wc4">${cells(4, 'wp')}</span><span class="wr wc4 wg2" style="flex:52 1 0">${cells(8)}</span>`,
+    detail: `<span class="wr wc2" style="flex:52 1 0"><i class="wb wacc"></i><span class=wcol><i class="wl w90"></i><i class="wl w70"></i><i class="wl w80"></i><i class="wl w50"></i><i class="wp wacc w50"></i></span></span><span class="wr wc4" style="flex:20 1 0">${cells(4)}</span>`,
     form: `<i class="wl w40"></i><i class=wfld></i><i class=wfld></i><i class=wfld></i><i class="wfld wtall"></i><i class="wp wacc w30"></i>`,
     state: `<span class=wcen><i class="wdot wacc"></i><i class="wl w40"></i><i class="wp w25"></i></span>`,
-    viewer: `<i class="wb wstage" style="height:66%"><i class="wdot wacc"></i></i><span class="wr wc5">${cells(5, 'wp')}</span>`,
-    map: `<i class="wb wdots" style="height:66%"></i><span class="wr wc4">${cells(4, 'wp')}</span>`,
-    dash: `<span class="wr wc3" style="height:24%"><i class="wb wacc"></i><i class=wb></i><i class=wb></i></span><span class="wr wc4 wg2" style="height:44%">${cells(8)}</span>`,
+    viewer: `<i class="wb wstage" style="flex:66 1 0"><i class="wdot wacc"></i></i><span class="wr wc5">${cells(5, 'wp')}</span>`,
+    map: `<i class="wb wdots" style="flex:66 1 0"></i><span class="wr wc4">${cells(4, 'wp')}</span>`,
+    dash: `<span class="wr wc3" style="flex:24 1 0"><i class="wb wacc"></i><i class=wb></i><i class=wb></i></span><span class="wr wc4 wg2" style="flex:44 1 0">${cells(8)}</span>`,
     text: `<i class="wl wacc w40"></i><i class="wl w95"></i><i class="wl w90"></i><i class="wl w95"></i><i class="wl w70"></i><i class="wl w90"></i><i class="wl w60"></i>`,
   };
   const WF_NAV = '<span class="wr wnav"><i class=wlogo></i><i></i><i class=wl></i><i class=wl></i><i class=wl></i><i class="wp wacc"></i></span>';
