@@ -129,7 +129,7 @@ assert "end-logo" in src
 
 # --- footer outside main with grid; script
 src = src.replace("<footer><div class=wrap>", "<footer>").replace("</span></div></footer>", "</span></footer>")
-src = src.replace("</body></html>", '<script src="data/tiers.js" defer></script>\n<script src="builder.js" defer></script>\n<script src="main.js" defer></script>\n</body>\n</html>\n')
+src = src.replace("</body></html>", '<script src="data/tiers.js" defer></script>\n<script src="builder.js" defer></script>\n<script src="pvf-scan.js" defer></script>\n<script src="main.js" defer></script>\n</body>\n</html>\n')
 
 # builder goes right after the hero, before the proposal text
 src = src.replace("\n<section id=approach>", BUILDER + "\n<section id=approach>", 1)
@@ -167,7 +167,7 @@ for sid, kick, title in FOLD:
 
 # cache-busting: GitHub Pages caches files for 10 min, so a new page with an old stylesheet looks broken
 import hashlib
-for asset in ["styles.css", "main.js", "builder.js", "data/tiers.js", "data/pages-desc.js"]:
+for asset in ["styles.css", "main.js", "builder.js", "pvf-scan.js", "data/tiers.js", "data/pages-desc.js"]:
     v = hashlib.sha1((ROOT / asset).read_bytes()).hexdigest()[:8]
     src = src.replace(f'"{asset}"', f'"{asset}?v={v}"')
 

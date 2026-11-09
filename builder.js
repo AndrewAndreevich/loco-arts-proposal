@@ -19,6 +19,26 @@
   const tierById = Object.fromEntries(D.tiers.map((t) => [t.id, t]));
   const state = {};
   const key = (g, d) => `${g.id}.${d.id}`;
+  // PVF Scan volume and processing mode, set in the feature presentation
+  const SC = D.scan || {};
+  const scanCfg = { n: SC.perMonth || 20, mode: 'night' };
+  const nasUsd = () => Math.round((SC.nasGel || 0) / (SC.gelPerUsd || 1) / 10) * 10;
+  const equipment = () => (SC.pc || 0) + nasUsd();
+  const ownPc = (st) => st['artworks.proc'] === 'hybrid';
+  const perWork = (st = state) => (ownPc(st) ? SC.handling : SC.hoursPerWork * (scanCfg.mode === 'night' ? SC.night : SC.instant) + SC.handling);
+  // a service with its price for a given selection (scan processing depends on volume and mode)
+  function sv(x, st = state) {
+    if (x !== 'scanproc') return D.services[x];
+    const per = perWork(st); const v = per * scanCfg.n;
+    const how = ownPc(st) ? 'own PC in the residence' : scanCfg.mode === 'night' ? `night queue ${SC.nightWindow}` : 'instant';
+    return { name: `PVF Scan processing: ${scanCfg.n} works / mo × $${per} (${how})`, min: v, max: v };
+  }
+  // decisions like "who scans" only count when the decision they depend on is above its first level
+  const isOff = (g, d, st = state) => {
+    if (!d.dependsOn) return false;
+    const base = g.decisions.find((x) => x.id === d.dependsOn);
+    return st[`${g.id}.${base.id}`] === base.choices[0].id;
+  };
 
   // every screen in the project, for names of transition targets
   const allPages = {};
@@ -248,6 +268,12 @@
     return box;
   }
 
+  // screens a feature lives on: its own screens and the screens they open from
+  function featurePages(g) {
+    const ids = new Set();
+    g.decisions.filter((d) => d.feature).forEach((d) => d.choices.forEach((c) => (c.pages || []).forEach((p) => { ids.add(p.id); if (p.from) ids.add(p.from); })));
+    return ids;
+  }
   function buildSlider(g, screens) {
     const wrapEl = document.createElement('div');
     wrapEl.className = 'slider';
@@ -274,6 +300,7 @@
           ${sum ? `<p class=s-sum>${esc(sum)}</p>` : ''}
           ${parts.length ? `<ul class=s-parts>${parts.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
           ${sc.opt ? `<p class=tds>${tierDots(sc.opt.tiers)}</p>` : ''}
+          ${featurePages(g).has(sc.id) ? `<button type=button class="feat-b" data-feature=scan>Customize · PVF Scan</button>` : ''}
         </div>`;
       strip.appendChild(sl);
     });
@@ -288,10 +315,12 @@
 
   const optSvc = (c) => {
     if (!c.services || !c.services.length) return '';
+    const fixed = c.services.filter((x) => x !== 'scanproc');
     let lo = 0; let hi = 0;
-    c.services.forEach((x) => { lo += D.services[x].min; hi += D.services[x].max; });
-    const names = c.services.map((x) => D.services[x].name).join(', ');
-    return `<span class=opt-svc>+${lo === hi ? money(lo) : `${money(lo)}–${money(hi)}`} / mo · ${esc(names)}</span>`;
+    fixed.forEach((x) => { lo += D.services[x].min; hi += D.services[x].max; });
+    const names = fixed.map((x) => D.services[x].name).join(', ');
+    const per = c.services.includes('scanproc') ? `<span class=opt-svc>+ processing per work: $${SC.hoursPerWork * SC.night + SC.handling} night · $${SC.hoursPerWork * SC.instant + SC.handling} instant</span>` : '';
+    return (fixed.length ? `<span class=opt-svc>+${lo === hi ? money(lo) : `${money(lo)}–${money(hi)}`} / mo · ${esc(names)}</span>` : '') + per;
   };
 
   // ---------- render all groups ----------
@@ -313,7 +342,7 @@
     } else {
       sec.appendChild(Object.assign(document.createElement('p'), { className: 'grp-noscreens', textContent: 'No screens of its own: this work runs across all groups.' }));
     }
-    g.decisions.forEach((d) => {
+    g.decisions.filter((d) => !d.feature).forEach((d) => {
       const fs = document.createElement('fieldset');
       fs.className = 'dec';
       fs.innerHTML = `<legend>${esc(d.label)}</legend><div class=opts>${d.choices.map((c) => {
@@ -332,6 +361,13 @@
         (api.decs = api.decs || []).push({ fs, card });
       }
     });
+    if (g.decisions.some((d) => d.feature)) {
+      const fr = document.createElement('div');
+      fr.className = 'feat-row';
+      fr.innerHTML = `<div class=fr-t><p class=fr-k>Artwork viewer · PVF Scan</p><p class=fr-v></p><p class=fr-n></p></div>
+        <button type=button class=cta data-feature=scan>Customize</button>`;
+      sec.appendChild(fr);
+    }
     root.appendChild(sec);
     const foot = document.createElement('div');
     foot.className = 'grp-foot';
@@ -493,7 +529,7 @@
     groups.forEach(({ api }) => {
       if (!api || !api.decs) return;
       api.decs.forEach(({ fs, card }) => {
-        if (phone.matches) { card.appendChild(fs); card.hidden = false; } else { api.sec.insertBefore(fs, api.sec.querySelector('.grp-foot')); card.hidden = true; }
+        if (phone.matches) { card.appendChild(fs); card.hidden = false; } else { api.sec.insertBefore(fs, api.sec.querySelector('.feat-row') || api.sec.querySelector('.grp-foot')); card.hidden = true; }
       });
       if (!visibleIds(api).includes(api.active)) setActive(api, api.screens[0].id);
       slideTo(api, api.active, false);
@@ -527,6 +563,7 @@
       const active = new Map(g.pages.map((p) => [p.id, p]));
       const extra = [];
       g.decisions.forEach((d) => {
+        if (isOff(g, d)) return;
         const c = d.choices.find((x) => x.id === state[key(g, d)]);
         (c.pages || []).forEach((p) => active.set(p.id, p));
         const rest = c.hours - pageHours(c.pages);
@@ -677,7 +714,7 @@
   const switches = [...document.querySelectorAll('[data-tier]')];
   const pageHours = (pages) => (pages || []).reduce((a, p) => a + (p.h || 0), 0);
   const range = (a, b) => (a === b ? money(a) : `${money(a)}–${money(b)}`);
-  const svcRange = (set) => { let lo = 0; let hi = 0; set.forEach((x) => { lo += D.services[x].min; hi += D.services[x].max; }); return [lo, hi]; };
+  const svcRange = (set, st = state) => { let lo = 0; let hi = 0; set.forEach((x) => { const v = sv(x, st); lo += v.min; hi += v.max; }); return [lo, hi]; };
 
   // numbers in the bar change with a vertical slide: up when growing, down when shrinking
   const lastVal = new Map();
@@ -703,29 +740,32 @@
     let h = g.hours;
     const active = new Map(g.pages.map((p) => [p.id, p]));
     const svc = new Set(g.services || []);
+    let once = 0;
     const choices = g.decisions.map((d) => {
       const c = d.choices.find((x) => x.id === st[key(g, d)]);
+      if (isOff(g, d, st)) return { d, c, off: true };
       h += c.hours;
+      if (c.oneTime) once += equipment();
       (c.pages || []).forEach((p) => active.set(p.id, p));
       (c.services || []).forEach((x) => svc.add(x));
       return { d, c };
     });
-    return { h, screens: active.size, active, svc, choices };
+    return { h, screens: active.size, active, svc, choices, once };
   }
 
   function renderReport(all) {
     if (!reportEl) return;
     const curTier = matchingTier();
-    let hours = 0; let screens = 0;
+    let hours = 0; let screens = 0; let once = 0;
     const svc = new Set();
     const rows = all.map(({ g, t }, i) => {
-      hours += t.h; screens += t.screens; t.svc.forEach((x) => svc.add(x));
+      hours += t.h; screens += t.screens; once += t.once; t.svc.forEach((x) => svc.add(x));
       return `<tr style="--gc:var(--${g.color})"><td class=rn>${String(i + 1).padStart(2, '0')}</td><td>${esc(g.name)}</td>
         <td class=rs>${t.screens || '—'}</td><td class=rh>${t.h} h</td><td class=rd>${money(t.h * D.rate)}</td></tr>`;
     }).join('');
     const [lo, hi] = svcRange(svc);
     const dev = hours * D.rate;
-    const svcRows = [...svc].map((x) => { const v = D.services[x]; return `<p class=r-row><span>${esc(v.name)}</span><span>${range(v.min, v.max)} / mo</span></p>`; }).join('');
+    const svcRows = [...svc].map((x) => { const v = sv(x); return `<p class=r-row><span>${esc(v.name)}</span><span>${range(v.min, v.max)} / mo</span></p>`; }).join('');
     reportEl.innerHTML = `<div class=wrap>
       <p class=kicker>Summary · 1 of 2</p>
       <h2 class=rep-h>Cost</h2>
@@ -736,9 +776,9 @@
         <span class=c-cell><span class=c-l>Services</span><span class=rt-v data-k=monthly>${svc.size ? `${range(lo, hi)} / mo` : '—'}</span></span>
       </div>
       <div class=rep-big>
-        <div><p class=rb-l>Design, development and support</p><p class=rb-v>${money(dev)}</p><p class=rb-s>${hours} h × ${money(D.rate)} · ${screens} screens${curTier ? ` · ${curTier.name} in the proposal: ${money(curTier.price)}, ${curTier.weeks} weeks` : ''}</p></div>
+        <div><p class=rb-l>Design, development and support</p><p class=rb-v>${money(dev)}</p><p class=rb-s>${hours} h × ${money(D.rate)} · ${screens} screens${curTier ? ` · ${curTier.name} in the proposal: ${money(curTier.price)}, ${curTier.weeks} weeks` : ''}${once ? ` · plus ${money(once)} equipment, one-time` : ''}</p></div>
         <div><p class=rb-l>Services, first year</p><p class=rb-v>${range(lo * 12, hi * 12)}</p><p class=rb-s>twelve months of the services above</p></div>
-        <div class=rb-tot><p class=rb-l>Total for the first year</p><p class=rb-v>${range(dev + lo * 12, dev + hi * 12)}</p><p class=rb-s>work plus twelve months of services</p></div>
+        <div class=rb-tot><p class=rb-l>Total for the first year</p><p class=rb-v>${range(dev + once + lo * 12, dev + once + hi * 12)}</p><p class=rb-s>work${once ? ', equipment' : ''} plus twelve months of services</p></div>
       </div>
       <div class=rep-cols>
         <div><p class=r-h>By group</p><table class=rep-t><thead><tr><th></th><th>Group</th><th class=rs>Screens</th><th class=rh>Hours</th><th class=rd>Cost</th></tr></thead>
@@ -771,7 +811,19 @@
     const svc = new Set();
     const all = groups.map(({ g, api }) => {
       const t = groupTotal(g);
-      t.choices.forEach(({ d, c }) => { document.getElementById(`c-${g.id}-${d.id}-${c.id}`).checked = true; });
+      t.choices.forEach(({ d, c }) => {
+        const r = document.getElementById(`c-${g.id}-${d.id}-${c.id}`); if (r) r.checked = true;
+        const fs = r && r.closest('fieldset'); if (fs) fs.disabled = isOff(g, d);
+      });
+      const fr = document.getElementById('g-' + g.id).querySelector('.feat-row');
+      if (fr) {
+        const lv = t.choices.find(({ d }) => d.id === 'scan').c;
+        let fh = 0; const fsv = new Set();
+        t.choices.forEach(({ d, c, off }) => { if (!d.feature || off) return; fh += c.hours; (c.services || []).forEach((x) => fsv.add(x)); });
+        const [a1, b1] = svcRange(fsv);
+        fr.querySelector('.fr-v').textContent = `${lv.label} · ${fh} h${fsv.size ? ` · ${range(a1, b1)} / mo` : ''}${t.once ? ` · ${money(t.once)} one-time` : ''}`;
+        fr.querySelector('.fr-n').textContent = lv.note || '';
+      }
       if (api) {
         api.sec.querySelectorAll('.node.xopt, .slide.xopt').forEach((el) => el.classList.toggle('off', !t.active.has(el.dataset.id)));
         api.sec.querySelectorAll('.edge').forEach((e) => {
@@ -795,12 +847,13 @@
     const badge = document.getElementById('c-set');
     if (badge) { const h = setBadge(); if (badge.innerHTML !== h) badge.innerHTML = h; }
     roll(out.monthly, svc.size ? `${range(lo, hi)} / mo` : '—', lo);
-    const sig = JSON.stringify(state);
+    const sig = JSON.stringify([state, scanCfg]);
     lastAll = all;
     if (sig !== reportSig) { reportSig = sig; renderReport(all); }
     const t = matchingTier();
     switches.forEach((b) => b.setAttribute('aria-pressed', String(!!t && b.dataset.tier === t.id)));
     renderPlan();
+    if (window.LOCO_FEATURE) window.LOCO_FEATURE.refresh();
   }
   function setTier(tid) { Object.assign(state, defaults(tid)); update(); }
 
@@ -895,10 +948,10 @@
     const weeks = planWeeks(pk, cap);
     Object.keys(state).forEach((k) => { state[k] = saved[k]; });
     const all = D.groups.map((g) => ({ g, t: groupTotal(g, st) }));
-    let hours = 0; let screens = 0; const svc = new Set();
-    all.forEach(({ t }) => { hours += t.h; screens += t.screens; t.svc.forEach((x) => svc.add(x)); });
-    const [lo, hi] = svcRange(svc);
-    return { st, tier, all, hours, screens, svc, lo, hi, weeks, cap, support, build };
+    let hours = 0; let screens = 0; let once = 0; const svc = new Set();
+    all.forEach(({ t }) => { hours += t.h; screens += t.screens; once += t.once; t.svc.forEach((x) => svc.add(x)); });
+    const [lo, hi] = svcRange(svc, st);
+    return { st, tier, all, hours, screens, svc, lo, hi, weeks, cap, support, build, once };
   }
   const span2 = (a, b) => (a === b ? a : `${a}–${b}`);
 
@@ -907,8 +960,10 @@
     const rows = [[title, ''], []];
     if (B.tier) rows.push(['Proposal price, $', B.tier.price], ['Proposal timeline, weeks', B.tier.weeks]);
     rows.push(['Hours', B.hours], ['Screens', B.screens], ['Rate, $/h', D.rate], ['Hours × rate, $', dev],
+      ['Equipment, one-time, $', B.once || 0],
       ['Services, $/mo', span2(B.lo, B.hi)], ['Services, first year, $', span2(B.lo * 12, B.hi * 12)],
-      [B.tier ? 'Price + first-year services, $' : 'Total for the first year, $', B.tier ? span2(B.tier.price + B.lo * 12, B.tier.price + B.hi * 12) : span2(dev + B.lo * 12, dev + B.hi * 12)],
+      [B.tier ? 'Price + equipment + first-year services, $' : 'Total for the first year, $', B.tier ? span2(B.tier.price + B.once + B.lo * 12, B.tier.price + B.once + B.hi * 12) : span2(dev + B.once + B.lo * 12, dev + B.once + B.hi * 12)],
+      ['PVF Scan volume', `${scanCfg.n} works / month, ${scanCfg.mode === 'night' ? 'night queue' : 'instant'} processing`],
       ['Timeline, weeks', B.weeks.length], ['Pace, h/week', B.cap], ['Support after launch', `${B.support.label} · ${B.support.hours} h`], []);
     rows.push(['Groups', '', 'Screens', 'Hours', 'Cost, $', 'Services, $/mo']);
     B.all.forEach(({ g, t }, i) => {
@@ -917,12 +972,13 @@
     });
     rows.push(['Total', '', B.screens, B.hours, dev, span2(B.lo, B.hi)], []);
     rows.push(['Options', 'Chosen', 'Hours', 'Tiers', 'Services, $/mo']);
-    B.all.forEach(({ g, t }) => t.choices.forEach(({ d, c }) => {
-      let lo = 0; let hi = 0; (c.services || []).forEach((x) => { lo += D.services[x].min; hi += D.services[x].max; });
+    B.all.forEach(({ g, t }) => t.choices.forEach(({ d, c, off }) => {
+      let lo = 0; let hi = 0; (c.services || []).forEach((x) => { const v = sv(x, B.st); lo += v.min; hi += v.max; });
+      if (off) { rows.push([`${g.name} · ${d.label}`, 'not used with the gallery', 0, '', '']); return; }
       rows.push([`${g.name} · ${d.label}`, c.label, c.hours, (c.tiers || []).join(' ') || 'alternative', hi ? span2(lo, hi) : '']);
     }));
     rows.push([], ['Services', '', 'Min, $/mo', 'Max, $/mo']);
-    B.svc.forEach((x) => rows.push([D.services[x].name, '', D.services[x].min, D.services[x].max]));
+    B.svc.forEach((x) => { const v = sv(x, B.st); rows.push([v.name, '', v.min, v.max]); });
     rows.push(['Total', '', B.lo, B.hi], []);
     rows.push(['Weeks', 'Work', 'Hours']);
     B.weeks.forEach((w, i) => {
@@ -942,6 +998,7 @@
       ['Proposal price, $', '—', ...D.tiers.map((t) => t.price)],
       ['Hours', ...cols.map((B) => B.hours)],
       ['Hours × rate, $', ...cols.map((B) => B.hours * D.rate)],
+      ['Equipment, one-time, $', ...cols.map((B) => B.once || 0)],
       ['Screens', ...cols.map((B) => B.screens)],
       ['Timeline, weeks', ...cols.map((B) => B.weeks.length)],
       ['Pace, h/week', ...cols.map((B) => B.cap)],
@@ -951,12 +1008,12 @@
     D.groups.forEach((g, i) => cmp.push([`${String(i + 1).padStart(2, '0')} ${g.name}`, ...cols.map((B) => B.all[i].t.h)]));
     cmp.push(['Total', ...cols.map((B) => B.hours)], [], ['Options', ...head.slice(1)]);
     D.groups.forEach((g, gi) => g.decisions.forEach((d, di) => {
-      cmp.push([`${g.name} · ${d.label}`, ...cols.map((B) => { const c = B.all[gi].t.choices[di].c; return `${c.label} · ${c.hours} h`; })]);
+      cmp.push([`${g.name} · ${d.label}`, ...cols.map((B) => { const x = B.all[gi].t.choices[di]; return x.off ? '—' : `${x.c.label} · ${x.c.hours} h`; })]);
     }));
     // every option there is, with its hours and where it is used
     const opts = [['Group', 'Decision', 'Option', 'Hours', 'Services, $/mo', 'Your selection', ...D.tiers.map((t) => t.name)]];
     D.groups.forEach((g, gi) => g.decisions.forEach((d, di) => d.choices.forEach((c) => {
-      let lo = 0; let hi = 0; (c.services || []).forEach((x) => { lo += D.services[x].min; hi += D.services[x].max; });
+      let lo = 0; let hi = 0; (c.services || []).forEach((x) => { const v = sv(x); lo += v.min; hi += v.max; });
       opts.push([g.name, d.label, c.label, c.hours, hi ? span2(lo, hi) : '', ...cols.map((B) => (B.all[gi].t.choices[di].c.id === c.id ? '●' : ''))]);
     })));
     return [
@@ -1035,15 +1092,21 @@
   window.addEventListener('scroll', onMove, { passive: true });
   window.addEventListener('resize', onMove);
 
-  root.addEventListener('change', (e) => {
-    if (e.target.type !== 'radio') return;
+  function onPick(e) {
+    if (e.target.type !== 'radio' || !(e.target.name in state)) return;
     state[e.target.name] = e.target.value;
     if (!matchingTier()) custom = { ...state };
     update();
     measure();
-  });
+  }
+  root.addEventListener('change', onPick);
   switches.forEach((b) => b.addEventListener('click', () => setTier(b.dataset.tier)));
   D.groups.forEach((g) => g.decisions.forEach((d) => { state[key(g, d)] = d.choices[0].id; }));
+  // the feature presentations (pvf-scan.js) use the same state and tally
+  window.LOCO_BUILDER = {
+    D, state, scanCfg, key, money, esc, tierDots, optSvc, sv, svcRange, range, perWork, equipment, nasUsd, isOff, groupTotal,
+    onPick, refresh: () => { update(); measure(); },
+  };
   update();
   measure();
   update();

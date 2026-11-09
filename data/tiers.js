@@ -26,6 +26,17 @@ window.LOCO_DATA = {
     newsletter: { name: 'Newsletter', min: 0, max: 50 },
     ai: { name: 'AI translation', min: 5, max: 20 },
     splat: { name: '3D scenes on CDN (estimate)', min: 5, max: 20 },
+    scanstore: { name: 'PVF Scan results + CDN (Cloudflare R2)', min: 2, max: 15 },
+    scansrc: { name: 'PVF Scan sources in the cloud (Backblaze B2)', min: 5, max: 20 },
+    scanbackup: { name: 'Cold backup of scan sources (Backblaze B2)', min: 5, max: 20 },
+    scanproc: { name: 'PVF Scan processing', min: 0, max: 0 }, // worked out from the volume and the processing mode
+  },
+  // PVF Scan pricing: up to ~1 h of computer time per work, plus our handling (checks, publishing, tiles, previews)
+  scan: {
+    hoursPerWork: 1, night: 2, instant: 3, handling: 1, perMonth: 20,
+    nightWindow: '3:00–9:00',
+    pc: 2000, nasGel: 3500, gelPerUsd: 2.7, nasTb: 16,
+    resultGb: [0.5, 1], sourceGb: [1, 2],
   },
   groups: [
     {
@@ -57,11 +68,35 @@ window.LOCO_DATA = {
             { id: 'api', label: 'Direct API', hours: 26, tiers: [], note: 'Only if Artwork Archive grants API access' },
           ],
         },
+        // PVF Scan: how artworks look on the site. Shown on the page as one feature with its own presentation
+        // (Customize); the decisions below only count when a scan level is chosen.
         {
-          id: 'viewer', label: 'Artwork viewer',
+          id: 'scan', feature: 'scan', label: 'How artworks look on the site',
           choices: [
-            { id: 'std', label: 'Image gallery', hours: 2, tiers: ['E'], note: 'Swipe gallery with a full-screen lightbox on the artwork page' },
-            { id: 'zoom', label: 'Deep-zoom viewer', hours: 26, tiers: ['S', 'F'], note: 'From the proposal (Signature, Flagship): its own screen to zoom into high-resolution images', pages: [{ id: 'S02', name: 'Deep-zoom viewer', kind: 'viewer', h: 24, desc: 'Full-screen artwork view with deep zoom into high-resolution images; opens from the artwork detail.', from: 'P05' }] },
+            { id: 'gallery', label: 'Gallery: photos as they are', hours: 2, tiers: ['E'], note: 'LOCO photographs a work and attaches the photos; swipe gallery with a full-screen lightbox' },
+            { id: 'flat', label: 'PVF Scan · Flat', hours: 36, tiers: ['S'], services: ['scanstore', 'scanproc'], note: '10–20 close-up frames stitched into one flat, distortion-free image in super resolution; deep zoom down to the brushstroke, real size in cm', pages: [{ id: 'S02', name: 'Deep-zoom viewer', kind: 'viewer', h: 24, desc: 'Full-screen PVF Scan of the work: deep zoom into the super-resolution image, real size, scale bar; opens from the artwork detail.', from: 'P05' }] },
+            { id: 'object', label: 'PVF Scan · Flat + Object', hours: 84, tiers: ['F'], services: ['scanstore', 'scanproc'], note: 'Everything in Flat, plus 3D scans of sculptures and objects: a 3D view on the artwork page and automatic renders for cards', pages: [{ id: 'S02', name: 'Deep-zoom viewer', kind: 'viewer', h: 24, desc: 'Full-screen PVF Scan of the work: deep zoom into the super-resolution image, real size, scale bar; opens from the artwork detail.', from: 'P05' }, { id: 'F04', name: 'Artwork 3D view', kind: 'viewer', h: 32, desc: '3D scan of a sculpture or object (Gaussian Splatting): orbit, zoom, renders; opens from the artwork detail.', from: 'P05' }] },
+          ],
+        },
+        {
+          id: 'progress', feature: 'scan', dependsOn: 'scan', label: 'Progress of a work over time',
+          choices: [
+            { id: 'single', label: 'One scan per work', hours: 0, tiers: ['E'], note: 'Nothing extra to build: each work shows its latest scan' },
+            { id: 'timeline', label: 'Progress timeline', hours: 20, tiers: ['S', 'F'], note: 'The same work scanned again over time; a slider on the artwork page shows how it changed. For flat works and objects' },
+          ],
+        },
+        {
+          id: 'who', feature: 'scan', dependsOn: 'scan', label: 'Who scans',
+          choices: [
+            { id: 'team', label: 'LOCO team', hours: 0, tiers: ['E', 'S', 'F'], note: 'We train 1–2 people from the LOCO team; training is part of the PVF Scan hours' },
+            { id: 'members', label: 'Team + community members', hours: 14, tiers: [], note: 'A membership feature: members scan their own works and upload them from My LOCO, within a monthly quota or at a price per scan' },
+          ],
+        },
+        {
+          id: 'proc', feature: 'scan', dependsOn: 'scan', label: 'Processing and storage',
+          choices: [
+            { id: 'cloud', label: 'Cloud', hours: 0, tiers: ['E', 'S', 'F'], services: ['scansrc'], note: 'Sources, processing and results in the cloud; pay per processed work' },
+            { id: 'hybrid', label: 'Hybrid: PC + NAS in the residence, results in the cloud', hours: 40, tiers: [], oneTime: true, services: ['scanbackup'], note: 'Sources and processing stay in the residence; only the results go to the cloud for the site and members' },
           ],
         },
       ],
