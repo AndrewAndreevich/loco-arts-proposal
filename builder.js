@@ -268,6 +268,8 @@
     return box;
   }
 
+  // labels of the options that bring an optional screen
+  const optWith = (g, pid) => g.decisions.flatMap((d) => d.choices.filter((c) => (c.pages || []).some((p) => p.id === pid)).map((c) => c.label));
   function buildSlider(g, screens) {
     const wrapEl = document.createElement('div');
     wrapEl.className = 'slider';
@@ -286,14 +288,14 @@
       const parts = splitParts(sc.desc || DESC[sc.id] || '');
       const sum = (D.summaries || {})[sc.id] || '';
       sl.innerHTML = `<div class=s-head>
-          <p class=s-top><span class=s-kind>Page</span><span class=s-id>${sc.id}</span><span class=s-n>${idx + 1} / ${screens.length}</span><span class=s-h>${sc.h} h</span></p>
+          <p class=s-top><span class=s-kind>${sc.opt ? 'Optional page' : 'Page'}</span><span class=s-id>${sc.id}</span><span class=s-n>${idx + 1} / ${screens.length}</span><span class=s-h>${sc.opt ? '+' : ''}${sc.h} h</span></p>
           <h4>${esc(sc.name)}</h4>
         </div>
         <div class="wf big wf-${sc.kind}" aria-hidden=true>${WF_NAV}<div class=wf-body>${WF[sc.kind] || WF.text}</div>${WF_FOOT}</div>
         <div class=slide-body>
           ${sum ? `<p class=s-sum>${esc(sum)}</p>` : ''}
           ${parts.length ? `<ul class=s-parts>${parts.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
-          ${sc.opt ? `<p class=tds>${tierDots(sc.opt.tiers)}</p>` : ''}
+          ${sc.opt ? `<p class=s-optw><span class=s-opt-on>Counted, it comes with:</span><span class=s-opt-off>Not counted in this set. It comes with:</span> ${esc(optWith(g, sc.id).join(' or '))}</p><p class=tds>${tierDots(sc.opt.tiers)}</p>` : ''}
         </div>`;
       strip.appendChild(sl);
     });

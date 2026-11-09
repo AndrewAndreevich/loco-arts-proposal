@@ -755,3 +755,34 @@ html.feat-open { overflow: hidden; }
 .c2-lp .lp { width: min(220px, 100%); }
 .c2-lp figcaption { text-align: center; color: var(--mute); }
 @media (max-width: 600px) { .cmp2 { grid-template-columns: 1fr 1fr; } .c2-photo, .c2-scan { grid-column: 1 / -1; } }
+/* optional screens: say so, and whether they count in the current set */
+.slide.xopt .s-kind { color: var(--amber); }
+.s-optw { margin: 12px 0 6px; font-size: 14px; color: #cfcfcf; line-height: 1.4; }
+.s-opt-on { color: var(--gc); }
+.s-opt-off { display: none; color: var(--amber); }
+.slide.xopt.off .s-opt-on { display: none; }
+.slide.xopt.off .s-opt-off { display: inline; }
+.slide.xopt.off .s-h { text-decoration: line-through; color: var(--mute); }
+/* setup steps as cards: one at a time, neighbours peeking */
+.fs-lead { color: #cfcfcf; margin: -8px 0 20px; max-width: 70ch; }
+.fc-steps { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+.fc-steps button { font: inherit; font-size: 14px; color: var(--fg); background: #141414; border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; cursor: pointer; }
+.fc-steps button[aria-selected=true] { background: var(--gc); border-color: var(--gc); color: #000; }
+.fc-steps button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+.fc-track { position: relative; overflow: hidden; margin: 0 calc(-1 * var(--gut)); transition: height .35s cubic-bezier(.2, .75, .2, 1); touch-action: pan-y; }
+.fc-strip { display: flex; align-items: flex-start; gap: 16px; will-change: transform; }
+.fc-card { flex: 0 0 min(860px, 86vw); box-sizing: border-box; background: #121212; border: 1px solid var(--line); border-radius: 22px; padding: 22px; opacity: .35; transition: opacity .3s, border-color .3s; cursor: pointer; }
+.fc-card.cur { opacity: 1; border-color: var(--gc); cursor: auto; }
+.fc-k { margin: 0; color: var(--gc); font-size: 14px; }
+.fc-h { margin: 6px 0 8px; font-size: 26px; line-height: 1.15; color: var(--fg); }
+.fc-d { margin: 0 0 18px; color: #cfcfcf; font-size: 15px; line-height: 1.45; max-width: 68ch; }
+.fc-off { display: none; margin: 0 0 12px; color: var(--amber); font-size: 14px; }
+.fc-card.na .fc-off { display: block; }
+.fc-b .dec { margin-top: 0; }
+.fc-b .dec legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.fc-b .opt { background: #1b1b1b; }
+.fc-b .vol { background: #1b1b1b; margin-top: 0; }
+.fc-b .fs-total h3 { font-size: 24px; margin-bottom: 8px; }
+.fc-b .fs-total .kicker { display: none; }
+.fc-b > .cta { margin-top: 18px; border: 0; font: inherit; font-size: 18px; cursor: pointer; background: var(--gc); }
+@media (prefers-reduced-motion: reduce) { .fc-track { transition: none; } }

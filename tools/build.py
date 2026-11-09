@@ -75,7 +75,7 @@ BUILDER = """
 <p class=kicker>Tier builder</p>
 <h2 id=builder-h data-split>Every group of screens, and how each tier changes it</h2>
 <p class=big>Each group is a set of screens with their transitions, and options showing which tier uses which solution. Each group ends with a line showing what it adds; when the bar at the bottom of the screen reaches that line, the group's hours and monthly services are added, and the options you pick change them. Arrows top-right jump section to section.</p>
-<div class=legend aria-hidden=true><span class="td td-E">Essential</span><span class="td td-S">Signature</span><span class="td td-F">Flagship</span><span class="td td-alt">Alternative</span><span class=legend-dash>dashed screen = comes with an option</span></div>
+<div class=legend aria-hidden=true><span class="td td-E">Essential</span><span class="td td-S">Signature</span><span class="td td-F">Flagship</span><span class="td td-alt">Alternative</span><span class=legend-dash>dashed screen = optional: its hours count only when the option that brings it is chosen</span></div>
 <div id=groups></div>
 </div></section>
 <section id=report class=report aria-label="Cost summary"></section>

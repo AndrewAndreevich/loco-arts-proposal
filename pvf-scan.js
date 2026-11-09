@@ -23,6 +23,10 @@
   // tutorial icons: one generated sheet cut into assets/pvf-scan/icon-01..15.png (see design/pvf-scan-prompts.md)
   const icon = (k) => `<img class=fs-ic src="assets/pvf-scan/icon-${String(k).padStart(2, '0')}.png" alt="" width=160 height=100 loading=lazy decoding=async>`;
   const step = (n, ic, h, p) => `<li class=fs-step><span class=fs-sn>${n}</span>${icon(ic)}<h4>${h}</h4><p>${p}</p></li>`;
+  const card = (step, title, desc, body, scanOnly) => `<article class=fc-card data-step="${step}"${scanOnly ? ' data-scan' : ''}>
+    <p class=fc-k>${step}</p><h4 class=fc-h>${title}</h4>${desc ? `<p class=fc-d>${desc}</p>` : ''}
+    ${scanOnly && step !== 'Level' ? '<p class=fc-off>Not needed with the gallery: pick a PVF Scan level in the first step.</p>' : ''}
+    <div class=fc-b>${body}</div></article>`;
   const perNight = SC.hoursPerWork * SC.night + SC.handling;
   const perInstant = SC.hoursPerWork * SC.instant + SC.handling;
 
@@ -108,41 +112,41 @@
     </section>
 
     <section class=fs-sec>
-      <h3>Choose the level</h3>
-      ${fieldset(dec('scan'))}
-      ${fieldset(dec('progress'))}
-      ${fieldset(dec('who'))}
-    </section>
-
-    <section class=fs-sec>
-      <h3>Processing and storage</h3>
-      ${fieldset(dec('proc'))}
-      <div class=flows>
-        <div class=flow data-flow=cloud>
-          ${icon(14)}<p class=fl-h>Cloud</p>
-          <ol><li>Team or members upload</li><li>Cloud<small>sources · processing · results</small></li><li>Site and members</li></ol>
-        </div>
-        <div class=flow data-flow=hybrid>
-          ${icon(15)}<p class=fl-h>Hybrid</p>
-          <ol><li>Upload<small>residence Wi-Fi, or the My LOCO inbox</small></li><li>Residence: NAS ${SC.nasTb} TB + PC<small>sources · processing</small></li><li>Cloud<small>results only, through a CDN</small></li><li>Site and members</li></ol>
+      <h3>Set it up</h3>
+      <p class=fs-lead>Six short steps. Pick an option and the next step slides in; swipe or use the steps to go back.</p>
+      <div class=fc>
+        <div class=fc-steps role=tablist aria-label="Steps"></div>
+        <div class=fc-track>
+          <div class=fc-strip>
+            ${card('Level', 'How works look on the site', 'Gallery is what LOCO has today: photos as they are. PVF Scan adds a flat super-resolution image with deep zoom; Flat + Object adds 3D scans of sculpture and objects.', fieldset(dec('scan')), true)}
+            ${card('Progress', 'Progress of a work over time', 'Each new scan of the same work becomes a stage on a timeline on the artwork page. Works for flat works and objects.', fieldset(dec('progress')), true)}
+            ${card('Who', 'Who scans', 'We train one or two people from the LOCO team. Or open it to the community too: members scan their own works and upload them from My LOCO.', fieldset(dec('who')), true)}
+            ${card('Processing', 'Processing and storage', 'Everything in the cloud, or sources and processing on a PC and NAS in the residence with only the results in the cloud.', `${fieldset(dec('proc'))}
+              <div class=flows>
+                <div class=flow data-flow=cloud>
+                  ${icon(14)}<p class=fl-h>Cloud</p>
+                  <ol><li>Team or members upload</li><li>Cloud<small>sources · processing · results</small></li><li>Site and members</li></ol>
+                </div>
+                <div class=flow data-flow=hybrid>
+                  ${icon(15)}<p class=fl-h>Hybrid</p>
+                  <ol><li>Upload<small>residence Wi-Fi, or the My LOCO inbox</small></li><li>Residence: NAS ${SC.nasTb} TB + PC<small>sources · processing</small></li><li>Cloud<small>results only, through a CDN</small></li><li>Site and members</li></ol>
+                </div>
+              </div>
+              <p class=fs-note>The residence server never serves the site itself: visitors load the scans from the cloud, so the residence connection, power and security stay out of their way.</p>`, true)}
+            ${card('Volume', 'Volume and price', 'How many works are scanned a month, and how fast they are processed. The price below follows your choices.', `<div class=vol>
+                <label class=vol-l for=fs-n>Works scanned per month <output id=fs-no></output></label>
+                <input id=fs-n type=range min=0 max=200 step=5>
+                <div class=vol-m role=radiogroup aria-label="Processing">
+                  <label><input type=radio name=scanmode value=night> Night queue ${esc(SC.nightWindow)} · $${perNight} per work</label>
+                  <label><input type=radio name=scanmode value=instant> Instant · $${perInstant} per work</label>
+                  <p class=vol-own>Own PC in the residence: no computer-time fee, only our $${SC.handling} handling per work.</p>
+                </div>
+              </div>
+              <div class=fs-cost></div>`, true)}
+            ${card('Total', 'Your choice', '', `<div class=fs-total></div><button type=button class=cta data-close>Done, back to the screens</button>`, false)}
+          </div>
         </div>
       </div>
-      <p class=fs-note>The residence server never serves the site itself: visitors load the scans from the cloud, so the residence connection, power and security stay out of their way.</p>
-      <div class=vol>
-        <label class=vol-l for=fs-n>Works scanned per month <output id=fs-no></output></label>
-        <input id=fs-n type=range min=0 max=200 step=5>
-        <div class=vol-m role=radiogroup aria-label="Processing">
-          <label><input type=radio name=scanmode value=night> Night queue ${esc(SC.nightWindow)} · $${perNight} per work</label>
-          <label><input type=radio name=scanmode value=instant> Instant · $${perInstant} per work</label>
-          <p class=vol-own>Own PC in the residence: no computer-time fee, only our $${SC.handling} handling per work.</p>
-        </div>
-      </div>
-      <div class=fs-cost></div>
-    </section>
-
-    <section class="fs-sec fs-end">
-      <div class=fs-total></div>
-      <button type=button class=cta data-close>Done, back to the screens</button>
     </section>
   </div>`;
   document.body.appendChild(el);
@@ -159,6 +163,51 @@
   }
 
   // ---------- compare slider ----------
+
+  // ---------- the setup cards: one step at a time, the next one slides in after a pick ----------
+  const track = el.querySelector('.fc-track');
+  const strip = el.querySelector('.fc-strip');
+  const cards = [...el.querySelectorAll('.fc-card')];
+  const stepsNav = el.querySelector('.fc-steps');
+  stepsNav.innerHTML = cards.map((c, i) => `<button type=button role=tab data-go=${i}>${i + 1}. ${c.dataset.step}</button>`).join('');
+  let cur = 0;
+  function go(i, animate = true) {
+    cur = Math.max(0, Math.min(cards.length - 1, i));
+    const c = cards[cur];
+    const x = track.clientWidth / 2 - (c.offsetLeft + c.offsetWidth / 2);
+    strip.style.transition = animate && !reduce ? 'transform .45s cubic-bezier(.2, .75, .2, 1)' : 'none';
+    strip.style.transform = `translate3d(${x}px, 0, 0)`;
+    track.style.height = `${c.offsetHeight}px`;
+    cards.forEach((k, j) => { k.classList.toggle('cur', j === cur); k.inert = j !== cur; });
+    stepsNav.querySelectorAll('[data-go]').forEach((b, j) => b.setAttribute('aria-selected', String(j === cur)));
+  }
+  stepsNav.addEventListener('click', (e) => { const b = e.target.closest('[data-go]'); if (b) go(Number(b.dataset.go)); });
+  // a neighbour peeking at the side: tap it to go there
+  track.addEventListener('pointerup', (e) => {
+    const k = e.target.closest('.fc-card');
+    if (k && !k.classList.contains('cur') && !moved) go(cards.indexOf(k));
+  });
+  // a pick moves on to the next step (with the gallery the scan steps are skipped)
+  const nextAfter = (i) => {
+    if (cards[i].dataset.step === 'Level' && isOff(g, dec('proc'))) return cards.length - 1;
+    return i + 1;
+  };
+  el.addEventListener('click', (e) => {
+    const o = e.target.closest('.fc-card.cur .opt');
+    if (!o || e.detail === 0) return;
+    const i = cur;
+    setTimeout(() => { if (cur === i) go(nextAfter(i)); }, 380);
+  });
+  // swipe between steps
+  let drag = null; let moved = false;
+  track.addEventListener('pointerdown', (e) => { drag = e.target.closest('input[type=range]') ? null : { x: e.clientX, y: e.clientY }; moved = false; }, true);
+  track.addEventListener('pointerup', (e) => {
+    if (!drag) return;
+    const dx = e.clientX - drag.x; const dy = e.clientY - drag.y; drag = null;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) { moved = true; go(cur + (dx < 0 ? 1 : -1)); }
+  }, true);
+  track.addEventListener('pointercancel', () => { drag = null; });
+  window.addEventListener('resize', () => { if (!el.hidden) go(cur, false); });
 
   // ---------- choices: the same state as the page ----------
   const n = el.querySelector('#fs-n');
@@ -205,6 +254,8 @@
     rows.push(['Integration on the site', `${h} h × ${money(D.rate)} = ${money(h * D.rate)}`]);
     el.querySelector('.fs-cost').innerHTML = `<p class=r-h>Price</p>${rows.map(([a, b]) => `<p class=r-row><span>${esc(a)}</span><span>${esc(b)}</span></p>`).join('')}
       ${own ? '<p class=fs-note>Hardware prices and the lari rate are estimates; we confirm them with a quote before ordering.</p>' : ''}`;
+    cards.forEach((k) => k.classList.toggle('na', k.hasAttribute('data-scan') && k.dataset.step !== 'Level' && !scanOn));
+    if (!el.hidden) requestAnimationFrame(() => { track.style.height = `${cards[cur].offsetHeight}px`; });
     el.querySelector('.fs-total').innerHTML = `<p class=kicker>Your choice</p><h3>${esc(sel('scan').label)}</h3>
       <div class=fs-tot-row>
         <span class=c-cell><span class=c-l>Integration</span><span class=rt-v>${h} h</span></span>
@@ -224,6 +275,7 @@
     requestAnimationFrame(() => el.classList.add('in'));
     el.querySelector('.feat-x').focus({ preventScroll: true });
     refresh();
+    requestAnimationFrame(() => go(0, false));
   }
   function close() {
     el.classList.remove('in');
