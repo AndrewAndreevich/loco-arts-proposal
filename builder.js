@@ -370,21 +370,6 @@
       const i = Math.max(0, Math.min(ids.length - 1, ids.indexOf(api.active) + dir));
       slideTo(api, ids[i]);
     };
-    // when scrolling stops, make sure the nearest card sits exactly in the centre
-    let settle = 0;
-    const centreNearest = () => {
-      const mid = api.track.scrollLeft + api.track.clientWidth / 2;
-      let best = null; let dist = Infinity;
-      api.track.querySelectorAll('.slide').forEach((x) => {
-        if (x.hidden) return;
-        const d = Math.abs(x.offsetLeft + x.offsetWidth / 2 - mid);
-        if (d < dist) { dist = d; best = x; }
-      });
-      const maxLeft = api.track.scrollWidth - api.track.clientWidth;
-      const target = Math.max(0, Math.min(maxLeft, best.offsetLeft - (api.track.clientWidth - best.offsetWidth) / 2));
-      if (best && Math.abs(api.track.scrollLeft - target) > 2) api.track.scrollTo({ left: target, behavior: reduce ? 'auto' : 'smooth' });
-    };
-    api.track.addEventListener('scroll', () => { clearTimeout(settle); settle = setTimeout(centreNearest, 140); }, { passive: true });
     window.addEventListener('resize', () => placeArrows(api));
     api.prev.addEventListener('click', () => step(-1));
     api.next.addEventListener('click', () => step(1));
@@ -701,4 +686,17 @@
   D.groups.forEach((g) => g.decisions.forEach((d) => { state[key(g, d)] = d.choices[0].id; }));
   measure();
   update();
+
+  // ---------- jump arrows top-right: section to section, or straight to the top / bottom ----------
+  const jumpTargets = () => [document.getElementById('top'), document.getElementById('builder'),
+    ...document.querySelectorAll('#groups > .grp, #g-plan, .services-box, details.prop, #team')].filter(Boolean);
+  const scrollToEl = (el) => window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 12, behavior: reduce ? 'auto' : 'smooth' });
+  document.querySelectorAll('[data-jump]').forEach((btn) => btn.addEventListener('click', () => {
+    const k = btn.dataset.jump;
+    if (k === 'top') { window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' }); return; }
+    if (k === 'bottom') { window.scrollTo({ top: document.documentElement.scrollHeight, behavior: reduce ? 'auto' : 'smooth' }); return; }
+    const list = jumpTargets();
+    if (k === 'next') { const el = list.find((x) => x.getBoundingClientRect().top > 20); if (el) scrollToEl(el); else window.scrollTo({ top: document.documentElement.scrollHeight, behavior: reduce ? 'auto' : 'smooth' }); }
+    if (k === 'prev') { const el = [...list].reverse().find((x) => x.getBoundingClientRect().top < -20); if (el) scrollToEl(el); else window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' }); }
+  }));
 })();

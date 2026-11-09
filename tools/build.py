@@ -37,10 +37,11 @@ LOGO = LOGO.replace("<svg ", '<svg role="img" aria-label="LOCO Park" ', 1)
 header_new = (
     '<a class=skip href="#groups">Skip to the tier builder</a>\n'
     f'<header class=top><a class=logo href="#top" aria-label="LOCO Park — top">{LOGO}</a></header>\n'
-    '<div class=tswitch role=group aria-label="Tier">'
-    '<button type=button data-tier=E aria-pressed=false aria-label="1 Essential">1</button>'
-    '<button type=button data-tier=S aria-pressed=false aria-label="2 Signature">2</button>'
-    '<button type=button data-tier=F aria-pressed=false aria-label="3 Flagship">3</button></div>'
+    '<div class=tswitch role=group aria-label="Jump through the page">'
+    '<button type=button data-jump=top aria-label="To the top"><svg viewBox="0 0 12 12" width=12 height=12 aria-hidden=true><path d="M6 1 L11 5.5 H1 Z M6 6 L11 10.5 H1 Z"/></svg></button>'
+    '<button type=button data-jump=prev aria-label="Previous section"><svg viewBox="0 0 12 12" width=12 height=12 aria-hidden=true><path d="M6 3 L11 8.5 H1 Z"/></svg></button>'
+    '<button type=button data-jump=next aria-label="Next section"><svg viewBox="0 0 12 12" width=12 height=12 aria-hidden=true><path d="M6 9 L11 3.5 H1 Z"/></svg></button>'
+    '<button type=button data-jump=bottom aria-label="To the bottom"><svg viewBox="0 0 12 12" width=12 height=12 aria-hidden=true><path d="M6 6 L11 1.5 H1 Z M6 11 L11 6.5 H1 Z"/></svg></button></div>'
 )
 src = src.replace(header_old, header_new)
 
@@ -73,7 +74,7 @@ BUILDER = """
 <section id=builder class=builder aria-labelledby=builder-h><div class=wrap>
 <p class=kicker>Tier builder</p>
 <h2 id=builder-h data-split>Every group of screens, and how each tier changes it</h2>
-<p class=big>Each group is a set of screens with their transitions, and options showing which tier uses which solution. The bar below adds up hours and monthly services as you go: scrolling past a group adds all of it; opening its screens one by one adds only the screens you look at and the options you pick. Tiers 1 / 2 / 3 switch the options.</p>
+<p class=big>Each group is a set of screens with their transitions, and options showing which tier uses which solution. The bar below adds up hours and monthly services as you go: scrolling past a group adds all of it; opening its screens one by one adds only the screens you look at and the options you pick. Arrows top-right jump section to section.</p>
 <div class=legend aria-hidden=true><span class="td td-E">Essential</span><span class="td td-S">Signature</span><span class="td td-F">Flagship</span><span class="td td-alt">Alternative</span><span class=legend-dash>dashed screen = comes with an option</span></div>
 <div id=groups></div>
 <div id=plan></div>

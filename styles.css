@@ -52,7 +52,10 @@ img { max-width: 100%; }
   font: 400 15px/1 var(--font); cursor: pointer; transition: background-color .25s, color .25s;
 }
 .tswitch button:hover { background: var(--pill); }
-.tswitch button[aria-pressed="true"] { background: var(--orange); color: #000; }
+.tswitch button { display: grid; place-items: center; }
+.tswitch button svg { fill: #fff; }
+.tswitch button:active { background: var(--orange); }
+.tswitch button:active svg { fill: #000; }
 
 /* ---------- hero ---------- */
 .hero { padding: clamp(64px, 9vh, 106px) 0 0; }
@@ -131,7 +134,7 @@ body { padding-bottom: 96px; }
 .track::-webkit-scrollbar { display: none; }
 .track:focus-visible { box-shadow: inset 0 0 0 2px var(--yellow); border-radius: 20px; }
 .slide {
-  flex: 0 0 var(--cw); scroll-snap-align: center; display: grid; grid-template-columns: 1fr 1.1fr; gap: 22px; align-content: start; align-items: start;
+  flex: 0 0 var(--cw); scroll-snap-align: center; scroll-snap-stop: always; display: grid; grid-template-columns: 1fr 1.1fr; gap: 22px; align-content: start; align-items: start;
   padding: 18px; border-radius: 20px; background: #121212; opacity: .5; transition: opacity .35s, background-color .35s;
 }
 .slide.cur { opacity: 1; background: #171717; }
