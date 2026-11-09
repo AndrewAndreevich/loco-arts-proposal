@@ -107,8 +107,8 @@ body { padding-bottom: 96px; }
 .map .node:focus-visible .pg { stroke: var(--yellow); stroke-width: 1.5; }
 .map .node.on .pg { fill: var(--gc); stroke: var(--gc); }
 .map .node.on text { fill: #000; }
-.map .node.opt .pg { stroke-dasharray: 3 2; }
-.map .node.opt.off { opacity: .4; }
+.map .node.xopt .pg { stroke-dasharray: 3 2; }
+.map .node.xopt.off { opacity: .4; }
 .map .node.ghost .pg { fill: transparent; stroke: rgba(255, 255, 255, .2); stroke-dasharray: 2 2; }
 .map .node.ghost text { fill: #6f6f6f; font-size: 8.5px; }
 .map .node.ghost:hover .pg { stroke: rgba(255, 255, 255, .6); }
@@ -140,13 +140,15 @@ body { padding-bottom: 96px; }
 .dec-card .dec legend::before { content: "Option"; display: block; color: var(--mute); font-size: 13px; margin-bottom: 6px; }
 .dec-card .opts { clear: both; grid-template-columns: 1fr; gap: 8px; margin-top: 12px; }
 .dec-card .opt { background: #232323; padding: 12px 14px; }
-.slide.opt { outline: 1px dashed #555; outline-offset: -1px; }
-.slide.opt.off .wf { opacity: .4; }
-.s-top { display: flex; gap: 14px; align-items: baseline; margin: 0 0 8px; font-size: 14px; }
+.slide.xopt { outline: 1px dashed #555; outline-offset: -1px; }
+.slide.xopt.off .wf { opacity: .4; }
+.slide .s-head { grid-column: 1 / -1; }
+.s-top { display: flex; gap: 12px; align-items: baseline; margin: 0 0 6px; font-size: 13px; }
+.s-kind { color: var(--mute); }
 .s-id { color: var(--gc); }
 .s-n { color: var(--mute); }
 .s-h { margin-left: auto; color: var(--fg); font-variant-numeric: tabular-nums; }
-.slide h4 { margin: 0 0 10px; font-size: 26px; line-height: 1.15; letter-spacing: -.015em; color: var(--fg); }
+.slide h4 { margin: 0; font-size: 26px; line-height: 1.15; letter-spacing: -.015em; color: var(--gc); }
 .s-sum { margin: 0 0 14px; color: #e8e8e8; font-size: 17px; line-height: 1.3; }
 .s-parts {
   list-style: none; margin: 0; padding: 12px 0 0; border-top: 1px solid var(--line);
@@ -177,7 +179,7 @@ body { padding-bottom: 96px; }
 /* nodes appear one by one, lines draw in (only with JS and motion allowed) */
 .js .grp .map .node { opacity: 0; transform-box: fill-box; transition: opacity .6s ease; transition-delay: calc(var(--i) * 45ms); }
 .js .grp.in .map .node { opacity: 1; }
-.js .grp.in .map .node.opt.off { opacity: .4; }
+.js .grp.in .map .node.xopt.off { opacity: .4; }
 .js .grp .map .edge:not(.ext) { stroke-dasharray: 1; stroke-dashoffset: 1; }
 .js .grp.in .map .edge:not(.ext) { stroke-dashoffset: 0; transition: stroke-dashoffset .9s ease, stroke .3s, stroke-width .3s; transition-delay: calc(var(--i) * 50ms + 250ms), 0s, 0s; }
 /* wireframe of a screen: nav, body on a grid, footer (all classes w-prefixed to avoid clashes) */

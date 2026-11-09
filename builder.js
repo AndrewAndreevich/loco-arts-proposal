@@ -213,7 +213,7 @@
       return gg;
     };
     screens.forEach((sc) => {
-      node(sc.id, sc.opt ? 'opt' : '', sc.id, `${sc.id} ${sc.name} · ${sc.h} h`, false).dataset.id = sc.id;
+      node(sc.id, sc.opt ? 'xopt' : '', sc.id, `${sc.id} ${sc.name} · ${sc.h} h`, false).dataset.id = sc.id;
     });
     [...new Set(L.entries.map((e) => e[0]))].forEach((src) => {
       node('in:' + src, 'ghost', src, `From ${src} ${allPages[src].name}`, true).dataset.go = src;
@@ -234,14 +234,16 @@
     track.setAttribute('aria-label', `Screens of ${g.name}, scroll sideways`);
     screens.forEach((sc, idx) => {
       const sl = document.createElement('article');
-      sl.className = 'slide' + (sc.opt ? ' opt' : '');
+      sl.className = 'slide' + (sc.opt ? ' xopt' : '');
       sl.dataset.id = sc.id;
       const parts = splitParts(sc.desc || DESC[sc.id] || '');
       const sum = (D.summaries || {})[sc.id] || '';
-      sl.innerHTML = `<div class="wf big wf-${sc.kind}" aria-hidden=true>${WF_NAV}<div class=wf-body>${WF[sc.kind] || WF.text}</div>${WF_FOOT}</div>
-        <div class=slide-body>
-          <p class=s-top><span class=s-id>${sc.id}</span><span class=s-n>${idx + 1} / ${screens.length}</span><span class=s-h>${sc.h} h</span></p>
+      sl.innerHTML = `<div class=s-head>
+          <p class=s-top><span class=s-kind>Page</span><span class=s-id>${sc.id}</span><span class=s-n>${idx + 1} / ${screens.length}</span><span class=s-h>${sc.h} h</span></p>
           <h4>${esc(sc.name)}</h4>
+        </div>
+        <div class="wf big wf-${sc.kind}" aria-hidden=true>${WF_NAV}<div class=wf-body>${WF[sc.kind] || WF.text}</div>${WF_FOOT}</div>
+        <div class=slide-body>
           ${sum ? `<p class=s-sum>${esc(sum)}</p>` : ''}
           ${parts.length ? `<ul class=s-parts>${parts.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
           ${sc.opt ? `<p class=tds>${tierDots(sc.opt.tiers)}</p>` : ''}
@@ -444,7 +446,7 @@
         return { d, c };
       });
       if (api) {
-        api.sec.querySelectorAll('.node.opt, .slide.opt').forEach((el) => el.classList.toggle('off', !activePages.has(el.dataset.id)));
+        api.sec.querySelectorAll('.node.xopt, .slide.xopt').forEach((el) => el.classList.toggle('off', !activePages.has(el.dataset.id)));
         api.sec.querySelectorAll('.edge').forEach((e) => {
           const optOff = [e.dataset.a, e.dataset.b].some((id) => allPages[id] && pageGroup[id] === g.id && !activePages.has(id));
           e.classList.toggle('off', optOff);
@@ -510,5 +512,6 @@
     update();
   });
   switches.forEach((b) => b.addEventListener('click', () => setTier(b.dataset.tier)));
-  setTier('E');
+  D.groups.forEach((g) => g.decisions.forEach((d) => { state[key(g, d)] = d.choices[0].id; }));
+  update();
 })();
