@@ -171,5 +171,11 @@ for asset in ["styles.css", "main.js", "builder.js", "feature-kit.js", "pvf-scan
     v = hashlib.sha1((ROOT / asset).read_bytes()).hexdigest()[:8]
     src = src.replace(f'"{asset}"', f'"{asset}?v={v}"')
 
+# images loaded by the scripts carry a version too, so a new cut replaces the cached one at once
+h = hashlib.sha1()
+for f in sorted((ROOT / "assets").rglob("*")):
+    if f.is_file() and f.suffix in (".jpg", ".png"):
+        h.update(f.name.encode()); h.update(f.read_bytes())
+src = src.replace('<script src="data/tiers.js', f'<script>window.ASSET_V="{h.hexdigest()[:8]}"</script>\n<script src="data/tiers.js', 1)
 (ROOT / "index.html").write_text(src, encoding="utf-8")
 print("index.html", len(src))

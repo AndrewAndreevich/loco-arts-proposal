@@ -3,6 +3,7 @@
 (() => {
   const B = window.LOCO_BUILDER; const K = window.LOCO_FEATURE_KIT;
   if (!B || !K) return;
+  const V = window.ASSET_V || '';
   const { D, state, scanCfg, key, esc, isOff } = B;
   const { icon, step, format } = K;
   const SC = D.scan;
@@ -87,10 +88,10 @@
       if (painted) return;
       painted = true;
       const el = document.getElementById('feat-scan');
-      el.querySelector('[data-hi]').src = 'assets/pvf-scan/scan.jpg';
-      el.querySelector('[data-lo]').src = 'assets/pvf-scan/photo.jpg';
-      el.querySelector('.lp-hi').style.backgroundImage = 'url(assets/pvf-scan/scan.jpg)';
-      el.querySelector('.lp-lo').style.backgroundImage = 'url(assets/pvf-scan/photo.jpg)';
+      el.querySelector('[data-hi]').src = `assets/pvf-scan/scan.jpg?v=${V}`;
+      el.querySelector('[data-lo]').src = `assets/pvf-scan/photo.jpg?v=${V}`;
+      el.querySelector('.lp-hi').style.backgroundImage = `url(assets/pvf-scan/scan.jpg?v=${V})`;
+      el.querySelector('.lp-lo').style.backgroundImage = `url(assets/pvf-scan/photo.jpg?v=${V})`;
     },
     onChange: (e) => { if (e.target.name !== 'scanmode') return false; scanCfg.mode = e.target.value; return true; },
     bind: (ctx) => { const n = ctx.el.querySelector('#fs-n'); n.addEventListener('input', () => { scanCfg.n = Number(n.value); B.refresh(); }); },

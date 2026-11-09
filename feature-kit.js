@@ -5,6 +5,7 @@
 (() => {
   const B = window.LOCO_BUILDER;
   if (!B) return;
+  const V = window.ASSET_V || '';
   const { D, state, key, esc, tierDots, isOff } = B;
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   window.LOCO_FEATURES = window.LOCO_FEATURES || [];
@@ -31,7 +32,7 @@
         <span class=tds>${tierDots(c.tiers)}</span></label>`;
     }).join('')}</div></fieldset>`;
   // tutorial icons: one generated sheet cut into assets/pvf-scan/icon-01..15.png (see design/pvf-scan-prompts.md)
-  const icon = (k) => `<img class=fs-ic src="assets/pvf-scan/icon-${String(k).padStart(2, '0')}.png" alt="" width=160 height=100 loading=lazy decoding=async>`;
+  const icon = (k) => `<img class=fs-ic src="assets/pvf-scan/icon-${String(k).padStart(2, '0')}.png?v=${V}" alt="" width=160 height=100 loading=lazy decoding=async>`;
   const step = (n, ic, h, p) => `<li class=fs-step><span class=fs-sn>${n}</span>${icon(ic)}<h4>${h}</h4><p>${p}</p></li>`;
   const format = (tag, title, desc, steps) => `<div class=fs-fmt>
       <div class=fs-fmt-h><p class=fs-tag>${tag}</p><h4>${title}</h4><p>${desc}</p></div>

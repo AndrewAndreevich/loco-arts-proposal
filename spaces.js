@@ -5,6 +5,7 @@
 (() => {
   const B = window.LOCO_BUILDER; const K = window.LOCO_FEATURE_KIT;
   if (!B || !K) return;
+  const V = window.ASSET_V || '';
   const { D, scanCfg, hallCfg, studioCfg, esc, isOff } = B;
   const { step, format } = K;
   const SC = D.scan;
@@ -26,7 +27,7 @@
     const steps = periods.length * VIEWS;
     return `<div class=otl data-otl=${id}>
       <div class=otl-view>
-        ${periods.map((p) => Array.from({ length: VIEWS }, (_, k) => `<img class=otl-img data-p=${p.set} data-k=${k} src="assets/spaces/orbit/${id}-${p.set}-${k + 1}.jpg" alt="" width=600 height=512 loading=lazy decoding=async>`).join('')).join('')}
+        ${periods.map((p) => Array.from({ length: VIEWS }, (_, k) => `<img class=otl-img data-p=${p.set} data-k=${k} src="assets/spaces/orbit/${id}-${p.set}-${k + 1}.jpg?v=${V}" alt="" width=600 height=512 loading=lazy decoding=async>`).join('')).join('')}
         <p class=otl-scan>3D scan · view <b>1</b> / ${VIEWS}</p>
         <button type=button class="otl-nav prev" aria-label="Back in time"><svg viewBox="0 0 10 10" width=10 height=10 aria-hidden=true><path d="M7 1 L2 5 L7 9 Z"/></svg></button>
         <button type=button class="otl-nav next" aria-label="Forward in time"><svg viewBox="0 0 10 10" width=10 height=10 aria-hidden=true><path d="M3 1 L8 5 L3 9 Z"/></svg></button>
@@ -96,7 +97,7 @@
         <p class=kicker>PVF Scan · Park and halls</p>
         <h2 id=${hid}>The park as a 3D map, and every exhibition kept</h2>
         <p class=big>The same scanning as for the works, at the scale of the place: the whole LOCO Park territory as a 3D map with navigation, and every hall scanned again before each show closes, so the archive becomes a series of halls you can walk.</p>
-        <figure class=sp-map><img src="assets/spaces/park-map.jpg" alt="LOCO Park from above as a 3D map with green location pins and a walking route" width=1024 height=1024 loading=lazy decoding=async>
+        <figure class=sp-map><img src="assets/spaces/park-map.jpg?v=${V}" alt="LOCO Park from above as a 3D map with green location pins and a walking route" width=1024 height=1024 loading=lazy decoding=async>
           <figcaption><b>The park territory</b>Made from a satellite photo of 84 David Guramishvili Avenue: the real buildings, paths and green, with pins on buildings and works and a walking route. On the site this is a 3D scan you can fly through.</figcaption></figure>
         <h3 class=sp-h>A hall, from show to show</h3>
         <p class=fs-lead>Drag the timeline or use the arrows: the scan of the hall turns, and with the next exhibition the next scan takes its place.</p>
