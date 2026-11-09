@@ -42,20 +42,20 @@
     : '<span class="td td-alt">Alternative</span>');
 
   // wireframes on a real grid: rows of equal cells, pill buttons, aligned text lines
-  const cells = (n, cls = 'blk') => `<i class="${cls}"></i>`.repeat(n);
+  const cells = (n, cls = 'wb') => `<i class="${cls}"></i>`.repeat(n);
   const WF = {
-    home: `<i class="blk acc" style="height:38%"></i><span class="r c3" style="height:22%">${cells(3)}</span><span class="r c4" style="height:14%">${cells(4)}</span><i class="ln w60"></i>`,
-    list: `<i class="ln acc w30"></i><span class="r c4">${cells(4, 'pill')}</span><span class="r c4 g2" style="height:52%">${cells(8)}</span>`,
-    detail: `<span class="r c2" style="height:52%"><i class="blk acc"></i><span class=col><i class="ln w90"></i><i class="ln w70"></i><i class="ln w80"></i><i class="ln w50"></i><i class="pill acc w50"></i></span></span><span class="r c4" style="height:20%">${cells(4)}</span>`,
-    form: `<i class="ln w40"></i><i class=field></i><i class=field></i><i class=field></i><i class="field tall"></i><i class="pill acc w30"></i>`,
-    state: `<span class=center><i class="dot acc"></i><i class="ln w40"></i><i class="pill w25"></i></span>`,
-    viewer: `<i class="blk stage" style="height:66%"><i class="dot acc"></i></i><span class="r c5">${cells(5, 'pill')}</span>`,
-    map: `<i class="blk dots" style="height:66%"></i><span class="r c4">${cells(4, 'pill')}</span>`,
-    dash: `<span class="r c3" style="height:24%"><i class="blk acc"></i><i class=blk></i><i class=blk></i></span><span class="r c4 g2" style="height:44%">${cells(8)}</span>`,
-    text: `<i class="ln acc w40"></i><i class="ln w95"></i><i class="ln w90"></i><i class="ln w95"></i><i class="ln w70"></i><i class="ln w90"></i><i class="ln w60"></i>`,
+    home: `<i class="wb wacc" style="height:38%"></i><span class="wr wc3" style="height:22%">${cells(3)}</span><span class="wr wc4" style="height:14%">${cells(4)}</span><i class="wl w60"></i>`,
+    list: `<i class="wl wacc w30"></i><span class="wr wc4">${cells(4, 'wp')}</span><span class="wr wc4 wg2" style="height:52%">${cells(8)}</span>`,
+    detail: `<span class="wr wc2" style="height:52%"><i class="wb wacc"></i><span class=wcol><i class="wl w90"></i><i class="wl w70"></i><i class="wl w80"></i><i class="wl w50"></i><i class="wp wacc w50"></i></span></span><span class="wr wc4" style="height:20%">${cells(4)}</span>`,
+    form: `<i class="wl w40"></i><i class=wfld></i><i class=wfld></i><i class=wfld></i><i class="wfld wtall"></i><i class="wp wacc w30"></i>`,
+    state: `<span class=wcen><i class="wdot wacc"></i><i class="wl w40"></i><i class="wp w25"></i></span>`,
+    viewer: `<i class="wb wstage" style="height:66%"><i class="wdot wacc"></i></i><span class="wr wc5">${cells(5, 'wp')}</span>`,
+    map: `<i class="wb wdots" style="height:66%"></i><span class="wr wc4">${cells(4, 'wp')}</span>`,
+    dash: `<span class="wr wc3" style="height:24%"><i class="wb wacc"></i><i class=wb></i><i class=wb></i></span><span class="wr wc4 wg2" style="height:44%">${cells(8)}</span>`,
+    text: `<i class="wl wacc w40"></i><i class="wl w95"></i><i class="wl w90"></i><i class="wl w95"></i><i class="wl w70"></i><i class="wl w90"></i><i class="wl w60"></i>`,
   };
-  const WF_NAV = '<span class="r wnav"><i class=logo></i><i class=sp></i><i class=ln></i><i class=ln></i><i class=ln></i><i class="pill acc"></i></span>';
-  const WF_FOOT = `<span class="r c4 foot">${cells(4, 'ln')}</span>`;
+  const WF_NAV = '<span class="wr wnav"><i class=wlogo></i><i></i><i class=wl></i><i class=wl></i><i class=wl></i><i class="wp wacc"></i></span>';
+  const WF_FOOT = `<span class="wr wc4 wfoot">${cells(4, 'wl')}</span>`;
   // ---------- screens of a group: base + option-only, with tiers that bring them ----------
   function groupScreens(g) {
     const list = g.pages.map((p) => ({ ...p, opt: null }));
@@ -97,18 +97,24 @@
     [...new Set(exits.map((e) => e[1]))].forEach((t) => ghost('out:' + t, pos[exits.find((e) => e[1] === t)[0]][0]));
     const cols = Math.max(...Object.values(pos).map((p) => p[0])) + 1;
     const twoRows = entries.length + exits.length > 0;
-    // lanes for threads that jump over the row: shortest spans lowest, no overlaps within a lane
-    const jumps = edges.filter(([a, b]) => pos[b][0] - pos[a][0] !== 1)
-      .map(([a, b]) => ({ a, b, lo: Math.min(pos[a][0], pos[b][0]), hi: Math.max(pos[a][0], pos[b][0]) }))
-      .sort((x, y) => (x.hi - x.lo) - (y.hi - y.lo));
-    const lanes = [];
-    jumps.forEach((j) => {
-      let l = 0;
-      while (lanes[l] && lanes[l].some((o) => !(j.hi < o.lo || j.lo > o.hi))) l += 1;
-      (lanes[l] = lanes[l] || []).push(j);
-      j.lane = l;
+    // threads that jump over the row: all jumps from one screen in one direction share a lane,
+    // so they read as one trunk with branches down to each target
+    const jumps = edges.filter(([a, b]) => pos[b][0] - pos[a][0] !== 1);
+    const bundles = {};
+    jumps.forEach(([a, b]) => {
+      const k = `${a}|${pos[b][0] > pos[a][0] ? 'f' : 'b'}`;
+      const bd = bundles[k] || (bundles[k] = { lo: pos[a][0], hi: pos[a][0], edges: [] });
+      bd.lo = Math.min(bd.lo, pos[b][0]); bd.hi = Math.max(bd.hi, pos[b][0]); bd.edges.push(`${a}>${b}`);
     });
-    const lane = Object.fromEntries(jumps.map((j) => [`${j.a}>${j.b}`, j.lane]));
+    const lanes = [];
+    Object.values(bundles).sort((x, y) => (x.hi - x.lo) - (y.hi - y.lo)).forEach((bd) => {
+      let l = 0;
+      while (lanes[l] && lanes[l].some((o) => !(bd.hi < o.lo || bd.lo > o.hi))) l += 1;
+      (lanes[l] = lanes[l] || []).push(bd);
+      bd.lane = l;
+    });
+    const lane = {};
+    Object.values(bundles).forEach((bd) => bd.edges.forEach((e) => { lane[e] = bd.lane; }));
     return { edges, exits, entries, pos, cols, twoRows, lane, laneCount: lanes.length };
   }
 
@@ -279,6 +285,7 @@
       const hot = e.dataset.a === id || e.dataset.b === id;
       e.classList.toggle('hot', hot);
       e.setAttribute('marker-end', `url(#ar-${api.sec.id.slice(2)}-${hot ? 'b' : 'a'})`);
+      if (hot) e.parentNode.appendChild(e);
     });
     api.sec.querySelectorAll('.slide').forEach((s) => s.classList.toggle('cur', s.dataset.id === id));
     api.active = id;
