@@ -169,7 +169,7 @@
   const strip = el.querySelector('.fc-strip');
   const cards = [...el.querySelectorAll('.fc-card')];
   const stepsNav = el.querySelector('.fc-steps');
-  stepsNav.innerHTML = cards.map((c, i) => `<button type=button role=tab data-go=${i}>${i + 1}. ${c.dataset.step}</button>`).join('');
+  stepsNav.innerHTML = cards.map((c, i) => `<button type=button role=tab data-go=${i} aria-label="Step ${i + 1}: ${c.dataset.step}"><span class=st-n>${i + 1}</span><span class=st-l><span>${c.dataset.step}</span></span></button>`).join('');
   let cur = 0;
   function go(i, animate = true) {
     cur = Math.max(0, Math.min(cards.length - 1, i));

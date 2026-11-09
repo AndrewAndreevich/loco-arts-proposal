@@ -792,3 +792,9 @@ html.feat-open { overflow: hidden; }
 .fc-b > .cta { margin-top: 18px; border: 0; font: inherit; font-size: 18px; cursor: pointer; background: var(--gc); }
 @media (prefers-reduced-motion: reduce) { .fc-track { transition: none; } }
 @media (min-width: 601px) { .gf-base .gf-tag { align-self: flex-end; padding-bottom: 4px; } }
+/* step pills: just the number; the current one opens to show its name */
+.fc-steps button { display: inline-flex; align-items: center; min-width: 36px; height: 36px; padding: 0 13px; justify-content: center; }
+.st-l { display: grid; grid-template-columns: 0fr; opacity: 0; transition: grid-template-columns .35s cubic-bezier(.2, .75, .2, 1), opacity .25s, margin .35s; }
+.st-l > span { overflow: hidden; white-space: nowrap; }
+.fc-steps button[aria-selected=true] .st-l { grid-template-columns: 1fr; opacity: 1; margin-left: 8px; }
+@media (prefers-reduced-motion: reduce) { .st-l { transition: none; } }
