@@ -37,6 +37,16 @@
     const s = defaults(t.id);
     return Object.keys(s).every((k) => s[k] === state[k]);
   });
+  function splitParts(text) {
+    const out = []; let cur = ''; let depth = 0;
+    for (const ch of text.replace(/\.\s*$/, '')) {
+      if (ch === '(') depth += 1;
+      if (ch === ')') depth = Math.max(0, depth - 1);
+      if (!depth && (ch === ',' || ch === ';' || ch === '·')) { out.push(cur); cur = ''; } else cur += ch;
+    }
+    out.push(cur);
+    return out.map((x) => x.trim().replace(/^and\s+/i, '')).filter(Boolean).map((x) => x[0].toUpperCase() + x.slice(1));
+  }
   const tierDots = (tiers) => (tiers.length
     ? tiers.map((t) => `<span class="td td-${t}">${tierById[t].name}</span>`).join('')
     : '<span class="td td-alt">Alternative</span>');
@@ -114,13 +124,14 @@
       bd.lane = l;
     });
     const lane = {};
+    const jumpOut = new Set(jumps.map(([a]) => a)); const jumpIn = new Set(jumps.map(([, b]) => b));
     Object.values(bundles).forEach((bd) => bd.edges.forEach((e) => { lane[e] = bd.lane; }));
-    return { edges, exits, entries, pos, cols, twoRows, lane, laneCount: lanes.length };
+    return { edges, exits, entries, pos, cols, twoRows, lane, laneCount: lanes.length, jumpOut, jumpIn };
   }
 
   // small empty pages; ghosts (second row) = screens in other groups
   const NW = 44; const NH = 58; const STEP = 66; const SW = 24; const SH = 33;
-  const LABEL = 16; const LANE = 9; const ROW2 = 40;
+  const LANE = 9; const ROW2 = 40;
 
   function svg(tag, attrs, parent) {
     const e = document.createElementNS(SVGNS, tag);
@@ -143,10 +154,10 @@
   }
 
   function buildMap(g, screens, L) {
-    const TOP = LABEL + (L.laneCount ? L.laneCount * LANE + 6 : 2);
+    const TOP = L.laneCount ? L.laneCount * LANE + 8 : 4;
     const W = (L.cols - 1) * STEP + NW + 8;
     const rowY2 = TOP + NH + ROW2;
-    const H = (L.twoRows ? rowY2 + SH + LABEL + 2 : TOP + NH + 6);
+    const H = (L.twoRows ? rowY2 + SH + 4 : TOP + NH + 4);
     const box = document.createElement('div');
     box.className = 'map';
     const s = svg('svg', { viewBox: `-4 0 ${W} ${H}`, width: W, height: H, role: 'group', 'aria-label': `Screen map: ${g.name}` }, box);
@@ -174,10 +185,12 @@
       } else if (L.pos[b][0] - L.pos[a][0] === 1) { // neighbours: straight thread
         pts = [[A.x + A.w + 2, A.y + A.h / 2], [B.x - 3, B.y + B.h / 2]];
       } else { // jump over the row in its own lane
-        const fwd = L.pos[b][0] > L.pos[a][0];
-        const ya = TOP - LABEL - 4 - L.lane[`${a}>${b}`] * LANE;
-        const xa = fwd ? A.x + A.w - 5 : A.x + 5; const xb = fwd ? B.x + 5 : B.x + B.w - 5;
-        pts = [[xa, A.y - 2], [xa, ya], [xb, ya], [xb, B.y - 3]];
+        const ya = TOP - 8 - L.lane[`${a}>${b}`] * LANE;
+        // out of the middle of the top edge, into the middle of the target's top edge;
+        // a screen that both sends and receives jumps splits its centre a little
+        const both = (id) => L.jumpOut.has(id) && L.jumpIn.has(id);
+        const xa = A.x + A.w / 2 - (both(a) ? 5 : 0); const xb = B.x + B.w / 2 + (both(b) ? 5 : 0);
+        pts = [[xa, A.y - 1], [xa, ya], [xb, ya], [xb, B.y - 3]];
       }
       const p = svg('path', { d: ortho(pts), class: 'edge' + (ext ? ' ext' : ''), pathLength: 1, 'marker-end': `url(#ar-${g.id}-a)` }, gEdges);
       p.dataset.a = a.replace(/^(in|out):/, ''); p.dataset.b = b.replace(/^(in|out):/, '');
@@ -195,7 +208,7 @@
       gg.style.setProperty('--i', n++);
       svg('title', {}, gg).textContent = title;
       svg('rect', { class: 'pg', width: P.w, height: P.h, rx: 3 }, gg);
-      const t = svg('text', { x: P.w / 2, y: below ? P.h + 13 : -6, 'text-anchor': 'middle' }, gg);
+      const t = svg('text', { x: P.w / 2, y: P.h / 2 + 3.5, 'text-anchor': 'middle' }, gg);
       t.textContent = label;
       return gg;
     };
@@ -223,15 +236,15 @@
       const sl = document.createElement('article');
       sl.className = 'slide' + (sc.opt ? ' opt' : '');
       sl.dataset.id = sc.id;
-      const to = (sc.to || []).map((t) => `<li><button type=button data-go="${t}">${t} ${esc(allPages[t] ? allPages[t].name : '')}</button></li>`).join('');
-      const from = sc.from ? `<li><button type=button data-go="${sc.from}">← ${sc.from} ${esc(allPages[sc.from].name)}</button></li>` : '';
+      const parts = splitParts(sc.desc || DESC[sc.id] || '');
+      const sum = (D.summaries || {})[sc.id] || '';
       sl.innerHTML = `<div class="wf big wf-${sc.kind}" aria-hidden=true>${WF_NAV}<div class=wf-body>${WF[sc.kind] || WF.text}</div>${WF_FOOT}</div>
         <div class=slide-body>
           <p class=s-top><span class=s-id>${sc.id}</span><span class=s-n>${idx + 1} / ${screens.length}</span><span class=s-h>${sc.h} h · ${money(sc.h * D.rate)}</span></p>
           <h4>${esc(sc.name)}</h4>
-          <p class=s-desc>${esc(sc.desc || DESC[sc.id] || '')}</p>
-          ${to || from ? `<p class=s-lab>Transitions</p><ul class=s-links>${from}${to}</ul>` : ''}
-          ${sc.opt ? `<p class=s-lab>Comes with</p><p class=tds>${tierDots(sc.opt.tiers)}</p>` : ''}
+          ${sum ? `<p class=s-sum>${esc(sum)}</p>` : ''}
+          ${parts.length ? `<ul class=s-parts>${parts.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+          ${sc.opt ? `<p class=tds>${tierDots(sc.opt.tiers)}</p>` : ''}
         </div>`;
       track.appendChild(sl);
     });
