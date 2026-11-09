@@ -371,13 +371,21 @@
       const i = Math.max(0, Math.min(ids.length - 1, ids.indexOf(api.active) + dir));
       slideTo(api, ids[i]);
     };
-    // swipe fallback for browsers that do not scroll the strip natively
-    let sx = 0; let sy = 0; let sl = 0;
-    api.track.addEventListener('touchstart', (e) => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; sl = api.track.scrollLeft; }, { passive: true });
-    api.track.addEventListener('touchend', (e) => {
-      const dx = e.changedTouches[0].clientX - sx; const dy = e.changedTouches[0].clientY - sy;
-      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) && Math.abs(api.track.scrollLeft - sl) < 5) step(dx < 0 ? 1 : -1);
-    }, { passive: true });
+    // when scrolling stops, make sure the nearest card sits exactly in the centre
+    let settle = 0;
+    const centreNearest = () => {
+      const mid = api.track.scrollLeft + api.track.clientWidth / 2;
+      let best = null; let dist = Infinity;
+      api.track.querySelectorAll('.slide').forEach((x) => {
+        if (x.hidden) return;
+        const d = Math.abs(x.offsetLeft + x.offsetWidth / 2 - mid);
+        if (d < dist) { dist = d; best = x; }
+      });
+      const maxLeft = api.track.scrollWidth - api.track.clientWidth;
+      const target = Math.max(0, Math.min(maxLeft, best.offsetLeft - (api.track.clientWidth - best.offsetWidth) / 2));
+      if (best && Math.abs(api.track.scrollLeft - target) > 2) api.track.scrollTo({ left: target, behavior: reduce ? 'auto' : 'smooth' });
+    };
+    api.track.addEventListener('scroll', () => { clearTimeout(settle); settle = setTimeout(centreNearest, 140); }, { passive: true });
     window.addEventListener('resize', () => placeArrows(api));
     api.prev.addEventListener('click', () => step(-1));
     api.next.addEventListener('click', () => step(1));
@@ -563,7 +571,8 @@
   function seen(api, id) {
     const gid = gidOf(api);
     if (!D.groups.some((g) => g.id === gid)) return; // the work plan does not count hours
-    if (counted[gid] === 'all' || id.startsWith('dec:')) return;
+    if (id.startsWith('dec:')) return;
+    if (passed[gid] && !(counted[gid] instanceof Set)) return; // already counted whole by scrolling past
     if (!counted[gid]) counted[gid] = new Set([api.active]);
     counted[gid].add(id);
     update();
@@ -573,6 +582,25 @@
   const servicesEl = document.getElementById('services');
   const switches = [...document.querySelectorAll('[data-tier]')];
   const pageHours = (pages) => (pages || []).reduce((a, p) => a + (p.h || 0), 0);
+
+  // numbers in the bar change with a vertical slide: up when growing, down when shrinking
+  const lastVal = new Map();
+  function roll(el, text, num) {
+    const prev = lastVal.get(el);
+    if (prev && prev.text === text) return;
+    lastVal.set(el, { text, num });
+    if (!prev || reduce) { el.textContent = text; return; }
+    const dir = num >= prev.num ? 1 : -1;
+    el.querySelectorAll('.roll-out').forEach((x) => x.remove());
+    const old = el.querySelector('.roll-in') || Object.assign(document.createElement('span'), { textContent: el.textContent });
+    if (!old.parentNode) { el.textContent = ''; el.appendChild(old); }
+    old.className = 'roll-out';
+    old.style.setProperty('--d', dir);
+    const nw = Object.assign(document.createElement('span'), { className: 'roll-in', textContent: text });
+    nw.style.setProperty('--d', dir);
+    el.appendChild(nw);
+    setTimeout(() => old.remove(), 400);
+  }
 
   function update() {
     let hours = 0;
@@ -597,7 +625,7 @@
       document.getElementById('g-' + g.id).querySelector('.grp-meta').textContent =
         `${gs ? `${gs} ${gs === 1 ? 'screen' : 'screens'} · ` : ''}${gh} h`;
 
-      const c = counted[g.id];
+      const c = counted[g.id] instanceof Set ? (reached[g.id] ? counted[g.id] : null) : (passed[g.id] ? 'all' : null);
       if (c === 'all') {
         hours += gh;
         (g.services || []).forEach((x) => svc.add(x));
@@ -619,8 +647,8 @@
       const v = D.services[x]; lo += v.min; hi += v.max;
       rows.push(`<li><span>${esc(v.name)}</span><span>${v.min === v.max ? money(v.min) : `${money(v.min)}–${money(v.max)}`}</span></li>`);
     });
-    out.hours.textContent = hours;
-    out.monthly.textContent = svc.size ? `${money(lo)}–${money(hi)} / mo` : '—';
+    roll(out.hours, String(hours), hours);
+    roll(out.monthly, svc.size ? `${money(lo)}–${money(hi)} / mo` : '—', lo);
     if (servicesEl) servicesEl.innerHTML = (rows.join('') || '<li><span>Nothing counted yet: scroll or open screens above</span></li>')
       + (svc.size ? `<li class=tot><span>Total</span><span>${money(lo)}–${money(hi)} / month</span></li>` : '');
     const t = matchingTier();
@@ -629,18 +657,23 @@
   }
   function setTier(tid) { Object.assign(state, defaults(tid)); update(); }
 
-  // scrolling past a group that was not explored screen by screen adds all of it
+  // the tally follows the scroll position: a group counts once you have scrolled into / past it,
+  // and stops counting when you scroll back above it
+  const reached = {}; const passed = {};
+  function measure() {
+    let changed = false;
+    groups.forEach(({ g }) => {
+      const r = document.getElementById('g-' + g.id).getBoundingClientRect();
+      const line = window.innerHeight * 0.55;
+      const re = r.top < line; const pa = r.bottom < line;
+      if (re !== !!reached[g.id] || pa !== !!passed[g.id]) { reached[g.id] = re; passed[g.id] = pa; changed = true; }
+    });
+    return changed;
+  }
   let vraf = 0;
   window.addEventListener('scroll', () => {
     cancelAnimationFrame(vraf);
-    vraf = requestAnimationFrame(() => {
-      let changed = false;
-      groups.forEach(({ g }) => {
-        if (counted[g.id]) return;
-        if (document.getElementById('g-' + g.id).getBoundingClientRect().bottom < window.innerHeight * 0.55) { counted[g.id] = 'all'; changed = true; }
-      });
-      if (changed) update();
-    });
+    vraf = requestAnimationFrame(() => { if (measure()) update(); });
   }, { passive: true });
 
   root.addEventListener('change', (e) => {
@@ -648,7 +681,7 @@
     state[e.target.name] = e.target.value;
     const gid = e.target.name.split('.')[0];
     picked.add(e.target.name);
-    if (!counted[gid]) {
+    if (!(counted[gid] instanceof Set) && !passed[gid]) {
       const gr = groups.find((x) => x.g.id === gid);
       counted[gid] = new Set(gr && gr.api ? [gr.api.active] : []);
     }
@@ -656,5 +689,6 @@
   });
   switches.forEach((b) => b.addEventListener('click', () => setTier(b.dataset.tier)));
   D.groups.forEach((g) => g.decisions.forEach((d) => { state[key(g, d)] = d.choices[0].id; }));
+  measure();
   update();
 })();
