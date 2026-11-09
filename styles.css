@@ -814,9 +814,6 @@ html.feat-open { overflow: hidden; }
 .fo:has(input:checked) { background: var(--gc); color: #000; }
 .fo:has(input:focus-visible) { outline: 2px solid var(--yellow); outline-offset: 3px; }
 .fo-l { font-size: 17px; line-height: 1.25; }
-.fo-ms { display: flex; flex-wrap: wrap; gap: 6px; }
-.fo-m { font-size: 13px; padding: 4px 9px; border-radius: 999px; background: rgba(255, 255, 255, .07); color: #cfcfcf; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.fo-m b { font-weight: 400; color: var(--fg); }
 .fo:has(input:checked) .fo-m { background: rgba(0, 0, 0, .14); color: rgba(0, 0, 0, .75); }
 .fo:has(input:checked) .fo-m b { color: #000; }
 .fo-n { font-size: 13px; line-height: 1.4; color: var(--mute); }
@@ -825,3 +822,12 @@ html.feat-open { overflow: hidden; }
 .fo:has(input:checked) .td { box-shadow: 0 0 0 1px rgba(0, 0, 0, .55); }
 .fo:has(input:checked) .td-alt { color: #000; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .55); }
 .fs-dec:disabled .fo-grid { opacity: .35; pointer-events: none; }
+/* totals in equal cells: 2 or 3 per row, the same slots in every option of a step */
+.fo-ms { display: grid; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); gap: 6px; }
+.fo-m { display: flex; flex-direction: column; gap: 2px; padding: 7px 9px; border-radius: 10px; background: rgba(255, 255, 255, .06); min-width: 0; font-variant-numeric: tabular-nums; }
+.fo-ml { font-size: 11px; color: var(--mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fo-m b { font-weight: 400; font-size: 15px; color: var(--fg); white-space: nowrap; }
+.fo-m.none b { color: var(--mute); }
+.fo:has(input:checked) .fo-ml { color: rgba(0, 0, 0, .6); }
+.fo-grid { align-items: stretch; }
+.fo .fo-l { min-height: 2.5em; }

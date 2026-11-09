@@ -12,18 +12,24 @@
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // an option as a card: name, one line of totals (hours, screens, services, one-time), a short note, tiers
-  const metrics = (c) => {
-    const m = [`<span class=fo-m><b>${c.hours} h</b></span>`];
-    const n = (c.pages || []).length;
-    if (n) m.push(`<span class=fo-m><b>+${n}</b> ${n === 1 ? 'screen' : 'screens'}</span>`);
+  // every option of a decision shows the same slots in the same grid, so the cells line up across cards
+  const slotsOf = (c) => {
     const fixed = (c.services || []).filter((x) => x !== 'scanproc');
-    if (fixed.length) {
-      let lo = 0; let hi = 0; fixed.forEach((x) => { lo += D.services[x].min; hi += D.services[x].max; });
-      m.push(`<span class=fo-m><b>${range(lo, hi)}</b> / mo</span>`);
-    }
-    if ((c.services || []).includes('scanproc')) m.push(`<span class=fo-m><b>$${SC.hoursPerWork * SC.night + SC.handling}–${SC.hoursPerWork * SC.instant + SC.handling}</b> / work</span>`);
-    if (c.oneTime) m.push(`<span class=fo-m><b>${money(equipment())}</b> one-time</span>`);
-    return m.join('');
+    let lo = 0; let hi = 0; fixed.forEach((x) => { lo += D.services[x].min; hi += D.services[x].max; });
+    const n = (c.pages || []).length;
+    return {
+      hours: `${c.hours} h`,
+      screens: n ? `+${n}` : '—',
+      monthly: fixed.length ? range(lo, hi) : '—',
+      work: (c.services || []).includes('scanproc') ? `$${SC.hoursPerWork * SC.night + SC.handling}–${SC.hoursPerWork * SC.instant + SC.handling}` : '—',
+      once: c.oneTime ? money(equipment()) : '—',
+    };
+  };
+  const SLOT_LABELS = { hours: 'Hours', screens: 'Screens', monthly: 'Monthly', work: 'Per work', once: 'One-time' };
+  const slotKeys = (d) => Object.keys(SLOT_LABELS).filter((k) => k === 'hours' || d.choices.some((c) => slotsOf(c)[k] !== '—'));
+  const metrics = (d, c) => {
+    const v = slotsOf(c);
+    return slotKeys(d).map((k) => `<span class="fo-m${v[k] === '—' ? ' none' : ''}"><span class=fo-ml>${SLOT_LABELS[k]}</span><b>${v[k]}</b></span>`).join('');
   };
   const fieldset = (d) => `<fieldset class="dec fs-dec" data-dec="${d.id}"><legend>${esc(d.label)}</legend>
     ${d.dependsOn ? '<p class=fs-off>Pick a PVF Scan level above to set this.</p>' : ''}
@@ -31,7 +37,7 @@
       const id = `c-${g.id}-${d.id}-${c.id}`;
       return `<label class=fo for="${id}"><input type=radio name="${key(g, d)}" id="${id}" value="${c.id}">
         <span class=fo-l>${esc(c.label)}</span>
-        <span class=fo-ms>${metrics(c)}</span>
+        <span class=fo-ms style="--cols:${slotKeys(d).length === 4 ? 2 : Math.min(slotKeys(d).length, 3)}">${metrics(d, c)}</span>
         ${c.note ? `<span class=fo-n>${esc(c.note)}</span>` : ''}
         <span class=tds>${tierDots(c.tiers)}</span></label>`;
     }).join('')}</div></fieldset>`;
@@ -227,13 +233,17 @@
 
   // ---------- choices: the same state as the page ----------
   const n = el.querySelector('#fs-n');
+  let levelPicked = false;
   el.addEventListener('change', (e) => {
     if (e.target.name === 'scanmode') { scanCfg.mode = e.target.value; B.refresh(); return; }
+    if (e.target.name === key(g, dec('scan'))) levelPicked = true;
     B.onPick(e);
   });
   n.addEventListener('input', () => { scanCfg.n = Number(n.value); B.refresh(); });
 
   function refresh() {
+    const levelDefault = state[key(g, dec('scan'))] === dec('scan').choices[0].id;
+    if (!levelPicked && levelDefault) el.querySelectorAll(`[data-dec=scan] input`).forEach((r) => { r.checked = false; });
     const sel = (id) => dec(id).choices.find((c) => c.id === state[key(g, dec(id))]);
     let h = 0; const svc = new Set(); let once = 0;
     decs.forEach((d) => {
