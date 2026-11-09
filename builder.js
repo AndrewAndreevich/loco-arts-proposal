@@ -695,12 +695,12 @@
   }
 
   // what one group costs with the options chosen now
-  function groupTotal(g) {
+  function groupTotal(g, st = state) {
     let h = g.hours;
     const active = new Map(g.pages.map((p) => [p.id, p]));
     const svc = new Set(g.services || []);
     const choices = g.decisions.map((d) => {
-      const c = d.choices.find((x) => x.id === state[key(g, d)]);
+      const c = d.choices.find((x) => x.id === st[key(g, d)]);
       h += c.hours;
       (c.pages || []).forEach((p) => active.set(p.id, p));
       (c.services || []).forEach((x) => svc.add(x));
@@ -740,7 +740,7 @@
         <div><p class=r-h>Services, per month</p>${svcRows || '<p class=r-row><span>No paid services</span><span>—</span></p>'}
           <p class="r-row r-tot"><span>Total</span><span>${range(lo, hi)} / mo</span></p></div>
       </div>
-      <div class=rep-exp><span class=c-l>Export the summary</span>
+      <div class=rep-exp><span class=c-l>Export: your selection first, then the three tiers with prices, hours and weeks</span>
         <button type=button class=exp-b data-exp=xlsx>Excel (.xlsx)</button>
         <button type=button class=exp-b data-exp=csv>CSV</button></div></div>`;
   }
@@ -847,40 +847,87 @@
   }
 
   // ---------- export the summary: Excel workbook or CSV ----------
-  function exportRows() {
-    const groupsRows = [['#', 'Group', 'Screens', 'Hours', `Cost, $ (× ${D.rate}/h)`, 'Services, $/mo']];
-    const optRows = [['Group', 'Decision', 'Chosen option', 'Hours', 'Tiers', 'Services, $/mo']];
+  // one complete set (a selection of options): totals, groups, options, services, weeks
+  function bundle(st, tier) {
+    const saved = { ...state };
+    Object.assign(state, st); // the plan reads the global selection
+    const { pk, support } = planPackages();
+    const build = pk.reduce((a, x) => a + x.hours, 0);
+    const span = tier ? tier.weeks : planSpan(build);
+    const cap = Math.ceil(build / span);
+    const weeks = planWeeks(pk, cap);
+    Object.keys(state).forEach((k) => { state[k] = saved[k]; });
+    const all = D.groups.map((g) => ({ g, t: groupTotal(g, st) }));
     let hours = 0; let screens = 0; const svc = new Set();
-    lastAll.forEach(({ g, t }, i) => {
-      hours += t.h; screens += t.screens; t.svc.forEach((x) => svc.add(x));
-      const [a, b] = svcRange(t.svc);
-      groupsRows.push([i + 1, g.name, t.screens, t.h, t.h * D.rate, t.svc.size ? `${a}–${b}` : '']);
-      t.choices.forEach(({ d, c }) => {
-        let lo = 0; let hi = 0; (c.services || []).forEach((x) => { lo += D.services[x].min; hi += D.services[x].max; });
-        optRows.push([g.name, d.label, c.label, c.hours, (c.tiers || []).join(' ') || 'alternative', hi ? `${lo}–${hi}` : '']);
-      });
-    });
+    all.forEach(({ t }) => { hours += t.h; screens += t.screens; t.svc.forEach((x) => svc.add(x)); });
     const [lo, hi] = svcRange(svc);
-    const dev = hours * D.rate;
-    groupsRows.push(['', 'Total', screens, hours, dev, `${lo}–${hi}`]);
-    const svcRows = [['Service', 'Min, $/mo', 'Max, $/mo']];
-    svc.forEach((x) => svcRows.push([D.services[x].name, D.services[x].min, D.services[x].max]));
-    svcRows.push(['Total', lo, hi]);
-    const summary = [
-      ['LOCO Arts — summary', ''],
-      ['Hours', hours], ['Screens', screens], ['Rate, $/h', D.rate],
-      ['Design, development and support, $', dev],
-      ['Services, $/mo', `${lo}–${hi}`], ['Services, first year, $', `${lo * 12}–${hi * 12}`],
-      ['Total for the first year, $', `${dev + lo * 12}–${dev + hi * 12}`],
-      ['Timeline, weeks', lastPlan ? lastPlan.weeks.length : ''], ['Pace, h/week', lastPlan ? lastPlan.cap : ''],
-      ['Support after launch', lastPlan ? `${lastPlan.support.label} · ${lastPlan.support.hours} h` : ''],
+    return { st, tier, all, hours, screens, svc, lo, hi, weeks, cap, support, build };
+  }
+  const span2 = (a, b) => (a === b ? a : `${a}–${b}`);
+
+  function bundleSheet(B, title) {
+    const dev = B.hours * D.rate;
+    const rows = [[title, ''], []];
+    if (B.tier) rows.push(['Proposal price, $', B.tier.price], ['Proposal timeline, weeks', B.tier.weeks]);
+    rows.push(['Hours', B.hours], ['Screens', B.screens], ['Rate, $/h', D.rate], ['Hours × rate, $', dev],
+      ['Services, $/mo', span2(B.lo, B.hi)], ['Services, first year, $', span2(B.lo * 12, B.hi * 12)],
+      [B.tier ? 'Price + first-year services, $' : 'Total for the first year, $', B.tier ? span2(B.tier.price + B.lo * 12, B.tier.price + B.hi * 12) : span2(dev + B.lo * 12, dev + B.hi * 12)],
+      ['Timeline, weeks', B.weeks.length], ['Pace, h/week', B.cap], ['Support after launch', `${B.support.label} · ${B.support.hours} h`], []);
+    rows.push(['Groups', '', 'Screens', 'Hours', 'Cost, $', 'Services, $/mo']);
+    B.all.forEach(({ g, t }, i) => {
+      const [a, b] = svcRange(t.svc);
+      rows.push([`${String(i + 1).padStart(2, '0')} ${g.name}`, '', t.screens, t.h, t.h * D.rate, t.svc.size ? span2(a, b) : '']);
+    });
+    rows.push(['Total', '', B.screens, B.hours, dev, span2(B.lo, B.hi)], []);
+    rows.push(['Options', 'Chosen', 'Hours', 'Tiers', 'Services, $/mo']);
+    B.all.forEach(({ g, t }) => t.choices.forEach(({ d, c }) => {
+      let lo = 0; let hi = 0; (c.services || []).forEach((x) => { lo += D.services[x].min; hi += D.services[x].max; });
+      rows.push([`${g.name} · ${d.label}`, c.label, c.hours, (c.tiers || []).join(' ') || 'alternative', hi ? span2(lo, hi) : '']);
+    }));
+    rows.push([], ['Services', '', 'Min, $/mo', 'Max, $/mo']);
+    B.svc.forEach((x) => rows.push([D.services[x].name, '', D.services[x].min, D.services[x].max]));
+    rows.push(['Total', '', B.lo, B.hi], []);
+    rows.push(['Weeks', 'Work', 'Hours']);
+    B.weeks.forEach((w, i) => {
+      w.forEach((it) => rows.push([`W${i + 1}`, it.label + (it.split ? ' (part)' : ''), it.hours]));
+      rows.push([`W${i + 1} total`, '', w.reduce((a, x) => a + x.hours, 0)]);
+    });
+    rows.push(['After launch', `${B.support.label} support`, B.support.hours]);
+    return rows;
+  }
+
+  function exportSheets() {
+    const sel = bundle({ ...state }, null);
+    const tiers = D.tiers.map((t) => bundle(defaults(t.id), t));
+    const cols = [sel, ...tiers];
+    const head = ['', 'Your selection', ...D.tiers.map((t) => t.name)];
+    const cmp = [['Your selection and the three tiers', ''], [], head,
+      ['Proposal price, $', '—', ...D.tiers.map((t) => t.price)],
+      ['Hours', ...cols.map((B) => B.hours)],
+      ['Hours × rate, $', ...cols.map((B) => B.hours * D.rate)],
+      ['Screens', ...cols.map((B) => B.screens)],
+      ['Timeline, weeks', ...cols.map((B) => B.weeks.length)],
+      ['Pace, h/week', ...cols.map((B) => B.cap)],
+      ['Services, $/mo', ...cols.map((B) => span2(B.lo, B.hi))],
+      ['Support after launch', ...cols.map((B) => `${B.support.label} · ${B.support.hours} h`)],
+      [], ['Hours by group', ...head.slice(1)]];
+    D.groups.forEach((g, i) => cmp.push([`${String(i + 1).padStart(2, '0')} ${g.name}`, ...cols.map((B) => B.all[i].t.h)]));
+    cmp.push(['Total', ...cols.map((B) => B.hours)], [], ['Options', ...head.slice(1)]);
+    D.groups.forEach((g, gi) => g.decisions.forEach((d, di) => {
+      cmp.push([`${g.name} · ${d.label}`, ...cols.map((B) => { const c = B.all[gi].t.choices[di].c; return `${c.label} · ${c.hours} h`; })]);
+    }));
+    // every option there is, with its hours and where it is used
+    const opts = [['Group', 'Decision', 'Option', 'Hours', 'Services, $/mo', 'Your selection', ...D.tiers.map((t) => t.name)]];
+    D.groups.forEach((g, gi) => g.decisions.forEach((d, di) => d.choices.forEach((c) => {
+      let lo = 0; let hi = 0; (c.services || []).forEach((x) => { lo += D.services[x].min; hi += D.services[x].max; });
+      opts.push([g.name, d.label, c.label, c.hours, hi ? span2(lo, hi) : '', ...cols.map((B) => (B.all[gi].t.choices[di].c.id === c.id ? '●' : ''))]);
+    })));
+    return [
+      ['Your selection', bundleSheet(sel, 'LOCO Arts — your selection in the tier builder')],
+      ['Tiers compared', cmp],
+      ['All options', opts],
+      ...tiers.map((B) => [`${B.tier.name} $${B.tier.price.toLocaleString('en-US')}`, bundleSheet(B, `LOCO Arts — ${B.tier.name}, $${B.tier.price.toLocaleString('en-US')}, ${B.tier.weeks} weeks`)]),
     ];
-    const weekRows = [['Week', 'Work', 'Hours']];
-    if (lastPlan) {
-      lastPlan.weeks.forEach((w, i) => w.forEach((it) => weekRows.push([`W${i + 1}`, it.label + (it.split ? ' (part)' : ''), it.hours])));
-      weekRows.push(['After launch', `${lastPlan.support.label} support`, lastPlan.support.hours]);
-    }
-    return { summary, groupsRows, optRows, svcRows, weekRows };
   }
   const save = (blob, name) => {
     const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: name });
@@ -899,10 +946,9 @@
   document.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-exp]');
     if (!b) return;
-    const r = exportRows();
+    const sheets = exportSheets();
     if (b.dataset.exp === 'csv') {
-      const blocks = [r.summary, r.groupsRows, r.optRows, r.svcRows, r.weekRows];
-      const text = blocks.map((rows) => rows.map((row) => row.map(csvCell).join(',')).join('\r\n')).join('\r\n\r\n');
+      const text = sheets.map(([n, rows]) => [[`=== ${n} ===`], ...rows].map((row) => row.map(csvCell).join(',')).join('\r\n')).join('\r\n\r\n');
       save(new Blob(['﻿' + text], { type: 'text/csv;charset=utf-8' }), 'loco-arts-summary.csv');
       return;
     }
@@ -910,8 +956,12 @@
     try {
       const X = await loadXlsx();
       const wb = X.utils.book_new();
-      [['Summary', r.summary], ['Groups', r.groupsRows], ['Options', r.optRows], ['Services', r.svcRows], ['Weeks', r.weekRows]]
-        .forEach(([n, rows]) => { const ws = X.utils.aoa_to_sheet(rows); ws['!cols'] = rows[0].map((_, i) => ({ wch: i === 1 || n === 'Summary' ? 40 : 16 })); X.utils.book_append_sheet(wb, ws, n); });
+      sheets.forEach(([n, rows]) => {
+        const ws = X.utils.aoa_to_sheet(rows);
+        const w = Math.max(...rows.map((r) => r.length));
+        ws['!cols'] = Array.from({ length: w }, (_, i) => ({ wch: i === 0 ? 46 : i === 1 ? 34 : 18 }));
+        X.utils.book_append_sheet(wb, ws, n.slice(0, 31));
+      });
       X.writeFile(wb, 'loco-arts-summary.xlsx');
     } catch (err) { b.textContent = 'Excel failed to load'; }
     b.disabled = false;
