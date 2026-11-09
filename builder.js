@@ -282,6 +282,14 @@
     return { wrapEl, track, strip, prev, next };
   }
 
+  const optSvc = (c) => {
+    if (!c.services || !c.services.length) return '';
+    let lo = 0; let hi = 0;
+    c.services.forEach((x) => { lo += D.services[x].min; hi += D.services[x].max; });
+    const names = c.services.map((x) => D.services[x].name).join(', ');
+    return `<span class=opt-svc>+${lo === hi ? money(lo) : `${money(lo)}–${money(hi)}`} / mo · ${esc(names)}</span>`;
+  };
+
   // ---------- render all groups ----------
   const groups = [];
   D.groups.forEach((g, gi) => {
@@ -308,7 +316,7 @@
         const id = `c-${g.id}-${d.id}-${c.id}`;
         return `<label class=opt for="${id}"><input type=radio name="${key(g, d)}" id="${id}" value="${c.id}">
           <span class=opt-top><span class=opt-l>${esc(c.label)}</span><span class=opt-h>${c.hours} h</span></span>
-          ${c.note ? `<span class=opt-n>${esc(c.note)}</span>` : ''}<span class=tds>${tierDots(c.tiers)}</span></label>`;
+          ${c.note ? `<span class=opt-n>${esc(c.note)}</span>` : ''}${optSvc(c)}<span class=tds>${tierDots(c.tiers)}</span></label>`;
       }).join('')}</div>`;
       sec.appendChild(fs);
       if (api) { // on phones the same fieldset moves into a card at the end of the carousel
@@ -323,7 +331,7 @@
     root.appendChild(sec);
     const foot = document.createElement('div');
     foot.className = 'grp-foot';
-    foot.innerHTML = `<span class=c-cell><span class=c-l>Hours</span><span class="c-v gf-h"></span></span><span class=c-cell><span class=c-l>Services</span><span class="c-v gf-m"></span></span><span class=gf-s></span>`;
+    foot.innerHTML = `<span class=c-cell><span class=c-l>Hours</span><span class="c-v gf-h"></span></span><span class=c-cell><span class=c-l>Screens</span><span class="c-v gf-s"></span></span><span class=c-cell><span class=c-l>Services</span><span class="c-v gf-m"></span></span>`;
     sec.appendChild(foot);
     groups.push({ g, api });
   });
@@ -495,6 +503,7 @@
   // Same visual language as the groups: a calendar row of weeks (the map) and a carousel of week cards.
   const planRoot = document.getElementById('plan');
   let planSig = '';
+  let lastPlan = null;
   const KICKOFF = 12; // hours of the delivery group spent on kick-off and setup in week 1
 
   function planPackages() {
@@ -571,6 +580,7 @@
     const span = planSpan(total);
     const cap = Math.ceil(total / span);
     const weeks = planWeeks(pk, cap);
+    lastPlan = { weeks, cap, support };
     planRoot.innerHTML = '';
 
     const sec = document.createElement('section');
@@ -658,9 +668,8 @@
   // ---------- running tally of hours and services ----------
   // Every group shows its hours and services on the line at its bottom. When the bar at the bottom of
   // the screen reaches that line the group is added; scroll back above it and it is taken off again.
-  const out = { hours: document.getElementById('c-hours'), monthly: document.getElementById('c-monthly') };
-  const servicesEl = document.getElementById('services');
-  const reportEl = document.getElementById('report');
+  const out = { hours: document.getElementById('c-hours'), screens: document.getElementById('c-screens'), monthly: document.getElementById('c-monthly') };
+    const reportEl = document.getElementById('report');
   const switches = [...document.querySelectorAll('[data-tier]')];
   const pageHours = (pages) => (pages || []).reduce((a, p) => a + (p.h || 0), 0);
   const range = (a, b) => (a === b ? money(a) : `${money(a)}–${money(b)}`);
@@ -715,9 +724,14 @@
     reportEl.innerHTML = `<div class=wrap>
       <p class=kicker>Summary · 1 of 2</p>
       <h2 class=rep-h>Cost</h2>
+      <div class=rep-tally>
+        <span class=c-cell><span class=c-l>Hours</span><span class=rt-v data-k=hours>${hours} h</span></span>
+        <span class=c-cell><span class=c-l>Screens</span><span class=rt-v data-k=screens>${screens}</span></span>
+        <span class=c-cell><span class=c-l>Services</span><span class=rt-v data-k=monthly>${svc.size ? `${range(lo, hi)} / mo` : '—'}</span></span>
+      </div>
       <div class=rep-big>
         <div><p class=rb-l>Design, development and support</p><p class=rb-v>${money(dev)}</p><p class=rb-s>${hours} h × ${money(D.rate)} · ${screens} screens</p></div>
-        <div><p class=rb-l>Services</p><p class=rb-v>${range(lo, hi)}<small> / mo</small></p><p class=rb-s>${range(lo * 12, hi * 12)} for the first year</p></div>
+        <div><p class=rb-l>Services, first year</p><p class=rb-v>${range(lo * 12, hi * 12)}</p><p class=rb-s>twelve months of the services above</p></div>
         <div class=rb-tot><p class=rb-l>Total for the first year</p><p class=rb-v>${range(dev + lo * 12, dev + hi * 12)}</p><p class=rb-s>work plus twelve months of services</p></div>
       </div>
       <div class=rep-cols>
@@ -725,12 +739,16 @@
           <tbody>${rows}</tbody><tfoot><tr><td></td><td>Total</td><td class=rs>${screens}</td><td class=rh>${hours} h</td><td class=rd>${money(dev)}</td></tr></tfoot></table></div>
         <div><p class=r-h>Services, per month</p>${svcRows || '<p class=r-row><span>No paid services</span><span>—</span></p>'}
           <p class="r-row r-tot"><span>Total</span><span>${range(lo, hi)} / mo</span></p></div>
-      </div></div>`;
+      </div>
+      <div class=rep-exp><span class=c-l>Export the summary</span>
+        <button type=button class=exp-b data-exp=xlsx>Excel (.xlsx)</button>
+        <button type=button class=exp-b data-exp=csv>CSV</button></div></div>`;
   }
 
   let reportSig = '';
+  let lastAll = [];
   function update() {
-    let hours = 0;
+    let hours = 0; let screens = 0;
     const svc = new Set();
     const all = groups.map(({ g, api }) => {
       const t = groupTotal(g);
@@ -745,22 +763,19 @@
       }
       const sec = document.getElementById('g-' + g.id);
       const [slo, shi] = svcRange(t.svc);
-      sec.querySelector('.gf-s').textContent = t.screens ? `${t.screens} ${t.screens === 1 ? 'screen' : 'screens'}` : 'No screens of its own';
+      sec.querySelector('.gf-s').textContent = t.screens ? `+${t.screens}` : '—';
       sec.querySelector('.gf-h').textContent = `+${t.h} h`;
       sec.querySelector('.gf-m').textContent = t.svc.size ? `+${range(slo, shi)} / mo` : '—';
       sec.querySelector('.grp-foot').classList.toggle('on', !!passed[g.id]);
-      if (passed[g.id]) { hours += t.h; t.svc.forEach((x) => svc.add(x)); }
+      if (passed[g.id]) { hours += t.h; screens += t.screens; t.svc.forEach((x) => svc.add(x)); }
       return { g, t };
     });
     const [lo, hi] = svcRange(svc);
     roll(out.hours, `${hours} h`, hours);
+    roll(out.screens, String(screens), screens);
     roll(out.monthly, svc.size ? `${range(lo, hi)} / mo` : '—', lo);
-    if (servicesEl) {
-      const rows = [...svc].map((x) => { const v = D.services[x]; return `<li><span>${esc(v.name)}</span><span>${range(v.min, v.max)}</span></li>`; });
-      servicesEl.innerHTML = (rows.join('') || '<li><span>Nothing counted yet: scroll down through the groups</span></li>')
-        + (svc.size ? `<li class=tot><span>Total</span><span>${range(lo, hi)} / month</span></li>` : '');
-    }
     const sig = JSON.stringify(state);
+    lastAll = all;
     if (sig !== reportSig) { reportSig = sig; renderReport(all); }
     const t = matchingTier();
     switches.forEach((b) => b.setAttribute('aria-pressed', String(!!t && b.dataset.tier === t.id)));
@@ -771,7 +786,7 @@
   // a group counts once the top of the bar reaches the line at the bottom of that group
   const passed = {};
   const calcBar = document.querySelector('.calc');
-  const barTop = () => (calcBar ? calcBar.getBoundingClientRect().top : window.innerHeight);
+  const barTop = () => window.innerHeight - (calcBar ? calcBar.offsetHeight : 0);
   function measure() {
     let changed = false;
     const line = barTop();
@@ -781,9 +796,127 @@
       if (pa !== !!passed[g.id]) { passed[g.id] = pa; changed = true; }
     });
     // the summary page takes over from the bar: the bar slides away once the summary reaches it
-    if (calcBar && reportEl) calcBar.classList.toggle('docked', reportEl.getBoundingClientRect().top < window.innerHeight - 40);
+    const tally = reportEl && reportEl.querySelector('.rep-tally');
+    if (calcBar && tally) {
+      const dock = tally.getBoundingClientRect().bottom <= line;
+      if (dock !== calcBar.classList.contains('docked')) flyNumbers(dock);
+    }
     return changed;
   }
+  // the numbers leave the bar and land on the summary page (and go back when you scroll up)
+  let flying = [];
+  function flyNumbers(dock) {
+    const tally = reportEl.querySelector('.rep-tally');
+    const pairs = Object.entries(out).map(([k, el]) => [el, tally.querySelector(`[data-k=${k}]`)]).filter(([a, b]) => a && b);
+    flying.forEach((f) => f.stop());
+    flying = [];
+    if (reduce) {
+      calcBar.classList.toggle('docked', dock);
+      pairs.forEach(([, b]) => { b.style.visibility = ''; });
+      return;
+    }
+    const barRects = pairs.map(([a]) => a.getBoundingClientRect());
+    calcBar.classList.toggle('docked', dock);
+    pairs.forEach(([a, b], i) => {
+      const from = barRects[i];
+      const fs0 = parseFloat(getComputedStyle(a).fontSize); const fs1 = parseFloat(getComputedStyle(b).fontSize);
+      const clone = document.createElement('span');
+      clone.className = 'fly-num';
+      clone.textContent = b.textContent;
+      clone.style.fontSize = fs1 + 'px';
+      document.body.appendChild(clone);
+      b.style.visibility = 'hidden';
+      const t0 = performance.now(); const dur = 650; let raf = 0;
+      const ease = (x) => 1 - Math.pow(1 - x, 3);
+      const frame = (now) => {
+        const k = Math.min(1, (now - t0) / dur); const e = ease(k);
+        const to = b.getBoundingClientRect(); // follows the page while it scrolls
+        // dock: bar -> page; undock: page -> bar
+        const [p0, p1, s0, s1] = dock ? [from, to, fs0 / fs1, 1] : [to, from, 1, fs0 / fs1];
+        const x = p0.left + (p1.left - p0.left) * e; const y = p0.top + (p1.top - p0.top) * e;
+        clone.style.transform = `translate(${x}px, ${y}px) scale(${s0 + (s1 - s0) * e})`;
+        if (k < 1) raf = requestAnimationFrame(frame); else stop();
+      };
+      const stop = () => { cancelAnimationFrame(raf); clone.remove(); b.style.visibility = dock ? '' : 'hidden'; };
+      if (!dock) a.style.visibility = 'hidden';
+      const stopAll = () => { stop(); a.style.visibility = ''; if (!dock) b.style.visibility = ''; };
+      flying.push({ stop: stopAll });
+      raf = requestAnimationFrame(frame);
+      setTimeout(() => { a.style.visibility = ''; if (!dock) b.style.visibility = ''; }, dur + 20);
+    });
+  }
+
+  // ---------- export the summary: Excel workbook or CSV ----------
+  function exportRows() {
+    const groupsRows = [['#', 'Group', 'Screens', 'Hours', `Cost, $ (× ${D.rate}/h)`, 'Services, $/mo']];
+    const optRows = [['Group', 'Decision', 'Chosen option', 'Hours', 'Tiers', 'Services, $/mo']];
+    let hours = 0; let screens = 0; const svc = new Set();
+    lastAll.forEach(({ g, t }, i) => {
+      hours += t.h; screens += t.screens; t.svc.forEach((x) => svc.add(x));
+      const [a, b] = svcRange(t.svc);
+      groupsRows.push([i + 1, g.name, t.screens, t.h, t.h * D.rate, t.svc.size ? `${a}–${b}` : '']);
+      t.choices.forEach(({ d, c }) => {
+        let lo = 0; let hi = 0; (c.services || []).forEach((x) => { lo += D.services[x].min; hi += D.services[x].max; });
+        optRows.push([g.name, d.label, c.label, c.hours, (c.tiers || []).join(' ') || 'alternative', hi ? `${lo}–${hi}` : '']);
+      });
+    });
+    const [lo, hi] = svcRange(svc);
+    const dev = hours * D.rate;
+    groupsRows.push(['', 'Total', screens, hours, dev, `${lo}–${hi}`]);
+    const svcRows = [['Service', 'Min, $/mo', 'Max, $/mo']];
+    svc.forEach((x) => svcRows.push([D.services[x].name, D.services[x].min, D.services[x].max]));
+    svcRows.push(['Total', lo, hi]);
+    const summary = [
+      ['LOCO Arts — summary', ''],
+      ['Hours', hours], ['Screens', screens], ['Rate, $/h', D.rate],
+      ['Design, development and support, $', dev],
+      ['Services, $/mo', `${lo}–${hi}`], ['Services, first year, $', `${lo * 12}–${hi * 12}`],
+      ['Total for the first year, $', `${dev + lo * 12}–${dev + hi * 12}`],
+      ['Timeline, weeks', lastPlan ? lastPlan.weeks.length : ''], ['Pace, h/week', lastPlan ? lastPlan.cap : ''],
+      ['Support after launch', lastPlan ? `${lastPlan.support.label} · ${lastPlan.support.hours} h` : ''],
+    ];
+    const weekRows = [['Week', 'Work', 'Hours']];
+    if (lastPlan) {
+      lastPlan.weeks.forEach((w, i) => w.forEach((it) => weekRows.push([`W${i + 1}`, it.label + (it.split ? ' (part)' : ''), it.hours])));
+      weekRows.push(['After launch', `${lastPlan.support.label} support`, lastPlan.support.hours]);
+    }
+    return { summary, groupsRows, optRows, svcRows, weekRows };
+  }
+  const save = (blob, name) => {
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: name });
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  };
+  const csvCell = (v) => { const t = String(v); return /[",\n;]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
+  function loadXlsx() {
+    if (window.XLSX) return Promise.resolve(window.XLSX);
+    return new Promise((ok, fail) => {
+      const sc = Object.assign(document.createElement('script'), { src: 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js' });
+      sc.onload = () => ok(window.XLSX); sc.onerror = fail;
+      document.head.appendChild(sc);
+    });
+  }
+  document.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-exp]');
+    if (!b) return;
+    const r = exportRows();
+    if (b.dataset.exp === 'csv') {
+      const blocks = [r.summary, r.groupsRows, r.optRows, r.svcRows, r.weekRows];
+      const text = blocks.map((rows) => rows.map((row) => row.map(csvCell).join(',')).join('\r\n')).join('\r\n\r\n');
+      save(new Blob(['﻿' + text], { type: 'text/csv;charset=utf-8' }), 'loco-arts-summary.csv');
+      return;
+    }
+    b.disabled = true;
+    try {
+      const X = await loadXlsx();
+      const wb = X.utils.book_new();
+      [['Summary', r.summary], ['Groups', r.groupsRows], ['Options', r.optRows], ['Services', r.svcRows], ['Weeks', r.weekRows]]
+        .forEach(([n, rows]) => { const ws = X.utils.aoa_to_sheet(rows); ws['!cols'] = rows[0].map((_, i) => ({ wch: i === 1 || n === 'Summary' ? 40 : 16 })); X.utils.book_append_sheet(wb, ws, n); });
+      X.writeFile(wb, 'loco-arts-summary.xlsx');
+    } catch (err) { b.textContent = 'Excel failed to load'; }
+    b.disabled = false;
+  });
+
   let vraf = 0;
   const onMove = () => { cancelAnimationFrame(vraf); vraf = requestAnimationFrame(() => { if (measure()) update(); }); };
   window.addEventListener('scroll', onMove, { passive: true });
@@ -803,7 +936,7 @@
 
   // ---------- jump arrows top-right: section to section, or straight to the top / bottom ----------
   const jumpTargets = () => [document.getElementById('top'), document.getElementById('builder'),
-    ...document.querySelectorAll('#groups > .grp, #report, #g-plan, .services-box, details.prop, #team')].filter(Boolean);
+    ...document.querySelectorAll('#groups > .grp, #report, #g-plan, details.prop, #team')].filter(Boolean);
   const scrollToEl = (el) => window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 12, behavior: reduce ? 'auto' : 'smooth' });
   document.querySelectorAll('[data-jump]').forEach((btn) => btn.addEventListener('click', () => {
     const k = btn.dataset.jump;

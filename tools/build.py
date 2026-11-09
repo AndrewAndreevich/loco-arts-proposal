@@ -82,10 +82,10 @@ BUILDER = """
 <section class=builder-2><div class=wrap>
 <div id=plan></div>
 <noscript><p class=big>The tier builder needs JavaScript. The full proposal follows below.</p></noscript>
-<div class="grp services-box reveal" style="--gc:var(--yellow)"><div class=grp-head><span class=grp-n>€</span><h3>Monthly services for the chosen options</h3></div><ul id=services class=svc></ul></div>
 </div></section>
 <div class=calc role=region aria-label="Running tally"><div class=calc-in>
 <span class=c-cell><span class=c-l>Hours</span><span id=c-hours class=c-v aria-live=polite>0</span></span>
+<span class=c-cell><span class=c-l>Screens</span><span id=c-screens class=c-v>0</span></span>
 <span class=c-cell><span class=c-l>Services</span><span id=c-monthly class=c-v>—</span></span>
 </div></div>
 """

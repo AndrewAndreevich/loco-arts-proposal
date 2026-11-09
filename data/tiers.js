@@ -42,10 +42,10 @@ window.LOCO_DATA = {
       decisions: [],
     },
     {
-      id: 'artworks', name: 'Artworks', color: 'green', hours: 14, services: ['storage'],
+      id: 'artworks', name: 'Artworks', color: 'green', hours: 12, services: ['storage'],
       pages: [
         { id: 'P04', name: 'Artworks — catalogue', kind: 'list', h: 6, to: ['P05'] },
-        { id: 'P05', name: 'Artwork detail', kind: 'detail', h: 5, to: ['P06'] },
+        { id: 'P05', name: 'Artwork detail', kind: 'detail', h: 3, to: ['P06'] },
         { id: 'P06', name: 'Artwork inquiry', kind: 'form', h: 3, to: ['P37'] },
       ],
       decisions: [
@@ -60,17 +60,17 @@ window.LOCO_DATA = {
         {
           id: 'viewer', label: 'Artwork viewer',
           choices: [
-            { id: 'std', label: 'Image gallery', hours: 0, tiers: ['E'] },
-            { id: 'zoom', label: 'Deep-zoom viewer', hours: 24, tiers: ['S', 'F'], pages: [{ id: 'S02', name: 'Deep-zoom viewer', kind: 'viewer', h: 24, desc: 'Full-screen artwork view with deep zoom into high-resolution images; opens from the artwork detail.', from: 'P05' }] },
+            { id: 'std', label: 'Image gallery', hours: 2, tiers: ['E'], note: 'Swipe gallery with a full-screen lightbox on the artwork page' },
+            { id: 'zoom', label: 'Deep-zoom viewer', hours: 26, tiers: ['S', 'F'], note: 'From the proposal (Signature, Flagship): its own screen to zoom into high-resolution images', pages: [{ id: 'S02', name: 'Deep-zoom viewer', kind: 'viewer', h: 24, desc: 'Full-screen artwork view with deep zoom into high-resolution images; opens from the artwork detail.', from: 'P05' }] },
           ],
         },
       ],
     },
     {
-      id: 'exhibitions', name: 'Exhibitions & Open-Air Gallery', color: 'lime', hours: 22,
+      id: 'exhibitions', name: 'Exhibitions & Open-Air Gallery', color: 'lime', hours: 20,
       pages: [
         { id: 'P07', name: 'Exhibitions — overview', kind: 'list', h: 5, to: ['P08', 'P09', 'P10'] },
-        { id: 'P08', name: 'Exhibition detail', kind: 'detail', h: 6, to: ['P05', 'P14'] },
+        { id: 'P08', name: 'Exhibition detail', kind: 'detail', h: 4, to: ['P05', 'P14'] },
         { id: 'P09', name: 'Past exhibitions archive', kind: 'list', h: 3, to: ['P08'] },
         { id: 'P10', name: 'Open-Air Gallery — overview', kind: 'list', h: 4, to: ['P11'] },
         { id: 'P11', name: 'Open-Air work detail', kind: 'detail', h: 4, to: ['P03'] },
@@ -94,14 +94,14 @@ window.LOCO_DATA = {
         {
           id: 'ex3d', label: 'Hall 11 exhibition in 3D',
           choices: [
-            { id: 'no', label: 'Photo documentation', hours: 0, tiers: ['E', 'S'] },
-            { id: 'yes', label: '3D visit of one exhibition', hours: 24, tiers: ['F'], pages: [{ id: 'F02', name: 'Exhibition 3D visit', kind: 'viewer', h: 24, desc: '3D visit of one Hall 11 exhibition, linked from the exhibition page.', from: 'P08' }] },
+            { id: 'no', label: 'Photo documentation', hours: 2, tiers: ['E', 'S'], note: 'Installation photos on the exhibition page' },
+            { id: 'yes', label: '3D visit of one exhibition', hours: 26, tiers: ['F'], pages: [{ id: 'F02', name: 'Exhibition 3D visit', kind: 'viewer', h: 24, desc: '3D visit of one Hall 11 exhibition, linked from the exhibition page.', from: 'P08' }] },
           ],
         },
         {
           id: 'qr', label: 'Outdoor works',
           choices: [
-            { id: 'no', label: 'Work pages only', hours: 0, tiers: ['E', 'S'] },
+            { id: 'no', label: 'No QR codes', hours: 0, tiers: ['E', 'S'], note: 'Nothing extra to build: outdoor works have their pages, wall labels carry no codes' },
             { id: 'qr', label: 'QR code for every work from the CMS', hours: 16, tiers: ['F'] },
           ],
         },
@@ -139,11 +139,11 @@ window.LOCO_DATA = {
       decisions: [],
     },
     {
-      id: 'membership', name: 'Membership & payments', color: 'orange', hours: 38,
+      id: 'membership', name: 'Membership & payments', color: 'orange', hours: 32,
       note: 'Online payment via Bank of Georgia or TBC; access codes for studio residents and partners. Bank fees per LOCO’s merchant agreement.',
       pages: [
         { id: 'P25', name: 'Membership', kind: 'detail', h: 5, to: ['P26', 'P27'] },
-        { id: 'P26', name: 'Join membership / checkout', kind: 'form', h: 17, to: ['P28'] },
+        { id: 'P26', name: 'Join membership / checkout', kind: 'form', h: 11, to: ['P28'] },
         { id: 'P27', name: 'Activate access code', kind: 'form', h: 12, to: ['M04'] },
         { id: 'P28', name: 'Payment result', kind: 'state', h: 4, to: ['M04'] },
       ],
@@ -151,8 +151,8 @@ window.LOCO_DATA = {
         {
           id: 'billing', label: 'Membership billing',
           choices: [
-            { id: 'once', label: 'One-time payment + expiry reminders', hours: 0, tiers: ['E', 'S'], note: 'Member renews manually' },
-            { id: 'recurring', label: 'Recurring auto-renewal', hours: 24, tiers: ['F'], note: 'Retries, card change', pages: [{ id: 'F03', name: 'Manage subscription', kind: 'form', h: 24, desc: 'Recurring membership: auto-renewal, retries and card change in the member account.', from: 'M11' }] },
+            { id: 'once', label: 'One-time payment + expiry reminders', hours: 6, tiers: ['E', 'S'], note: 'Member renews manually' },
+            { id: 'recurring', label: 'Recurring auto-renewal', hours: 30, tiers: ['F'], note: 'Retries, card change', pages: [{ id: 'F03', name: 'Manage subscription', kind: 'form', h: 24, desc: 'Recurring membership: auto-renewal, retries and card change in the member account.', from: 'M11' }] },
           ],
         },
       ],
@@ -219,15 +219,15 @@ window.LOCO_DATA = {
       ],
     },
     {
-      id: 'cms', name: 'CMS & administration', color: 'pink', hours: 34,
+      id: 'cms', name: 'CMS & administration', color: 'pink', hours: 28,
       note: 'Payload CMS on PostgreSQL: structured templates, roles, drafts, scheduled publishing, version history.',
       pages: [],
       decisions: [
         {
           id: 'reporting', label: 'Reporting',
           choices: [
-            { id: 'no', label: 'CSV exports', hours: 0, tiers: ['E'] },
-            { id: 'dash', label: 'Admin reporting dashboard', hours: 28, tiers: ['S', 'F'] },
+            { id: 'no', label: 'CSV exports', hours: 6, tiers: ['E'], note: 'Members, payments and submissions exported from the CMS' },
+            { id: 'dash', label: 'Admin reporting dashboard', hours: 34, tiers: ['S', 'F'] },
           ],
         },
       ],
