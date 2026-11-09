@@ -875,3 +875,15 @@ html.feat-open { overflow: hidden; }
 .fc-steps { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
 .fc-steps::-webkit-scrollbar { display: none; }
 .fc-steps button { flex: none; }
+/* picked options: one summary row, a click opens the list */
+.gf-sum { width: 100%; margin: 6px 0 0; padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.gf-sum .c-v { font-size: 17px; }
+.grp-foot.on .gf-sum .c-v { color: var(--amber); }
+.gf-sum .gf-tag { display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end; color: var(--fg); }
+.gf-sum:hover .gf-tag, .gf-sum:focus-visible .gf-tag { color: var(--amber); }
+.gf-sum:focus-visible { outline: 2px solid var(--yellow); outline-offset: 4px; border-radius: 6px; }
+.gf-chev { width: 8px; height: 8px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg) translateY(-2px); transition: transform .25s; }
+.gf-sum[aria-expanded=true] .gf-chev { transform: rotate(-135deg) translateY(-2px); }
+.gf-list .gf-opt { opacity: .85; }
+.gf-list .gf-opt .c-v { font-size: 15px; }
+@media (max-width: 600px) { .gf-sum .gf-tag { justify-content: flex-start; } }

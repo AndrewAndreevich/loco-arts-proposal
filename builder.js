@@ -21,6 +21,7 @@
   const key = (g, d) => `${g.id}.${d.id}`;
   let picked = new Set();
   let pickedCustom = new Set();
+  const openOpts = new Set(); // groups whose list of picked options is open
   // a picked decision brings the decisions that depend on it (who scans, processing) along as picked
   const isPicked = (g, d) => picked.has(key(g, d)) || (!!d.dependsOn && picked.has(`${g.id}.${d.dependsOn}`))
     || (d.dependsOnAny || []).some((k) => picked.has(k.split('=')[0]));
@@ -905,6 +906,7 @@
       base.querySelector('.gf-s').textContent = baseScreens ? `+${baseScreens}` : '—';
       base.querySelector('.gf-m').textContent = baseSvc.size ? `+${range(bl, bh)} / mo` : '—';
       base.querySelector('.gf-tag').textContent = g.pages.length ? 'Standard screens' : 'Standard work';
+      // one summary row for the picked options; a click opens the list of them
       const optRows = mine.map(({ d, c }) => {
         const own = new Set(c.services || []);
         const [ol, oh] = svcRange(own);
@@ -914,8 +916,16 @@
           <span class=c-cell><span class="c-v">${own.size ? `+${range(ol, oh)} / mo` : '—'}</span></span>
           <span class=gf-tag>${esc(d.label)}: ${esc(c.label)}</span></div>`;
       }).join('');
+      const [ml, mh] = svcRange(mineSvc);
+      const open = openOpts.has(g.id);
+      const sumRow = mine.length ? `<button type=button class="gf-row gf-sum" aria-expanded="${open}" data-gid="${g.id}">
+          <span class=c-cell><span class="c-v">+${mineH} h</span></span>
+          <span class=c-cell><span class="c-v">${minePages.size ? `+${minePages.size}` : '—'}</span></span>
+          <span class=c-cell><span class="c-v">${mineSvc.size ? `+${range(ml, mh)} / mo` : '—'}</span></span>
+          <span class=gf-tag>Options and customization · ${mine.length} picked <i class=gf-chev aria-hidden=true></i></span></button>
+        <div class=gf-list${open ? '' : ' hidden'}>${optRows}</div>` : '';
       const box = sec.querySelector('.gf-opts');
-      if (box.innerHTML !== optRows) box.innerHTML = optRows;
+      if (box.innerHTML !== sumRow) box.innerHTML = sumRow;
       sec.querySelector('.grp-foot').classList.toggle('on', !!passed[g.id]);
       if (passed[g.id]) { hours += t.h; screens += t.screens; t.svc.forEach((x) => svc.add(x)); }
       return { g, t };
@@ -1182,6 +1192,16 @@
     measure();
   }
   root.addEventListener('change', onPick);
+  root.addEventListener('click', (e) => {
+    const b = e.target.closest('.gf-sum');
+    if (!b) return;
+    const gid = b.dataset.gid;
+    if (openOpts.has(gid)) openOpts.delete(gid); else openOpts.add(gid);
+    const open = openOpts.has(gid);
+    b.setAttribute('aria-expanded', String(open));
+    b.nextElementSibling.hidden = !open;
+    measure(); update();
+  });
   switches.forEach((b) => b.addEventListener('click', () => setTier(b.dataset.tier)));
   D.groups.forEach((g) => g.decisions.forEach((d) => { state[key(g, d)] = d.choices[0].id; }));
   // the feature presentations (pvf-scan.js) use the same state and tally
