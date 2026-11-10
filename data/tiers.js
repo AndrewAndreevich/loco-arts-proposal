@@ -11,13 +11,13 @@
  * Check: Essential 400 h, Signature 636 h, Flagship 884 h.
  */
 window.LOCO_DATA = {
-  rate: 30,
+  rate: 40,
   hoursPerWeek: 70,
   supportMonths: 6, // support after launch: a pool of hours used over these months
   tiers: [
-    { id: 'E', name: 'Essential', price: 12000, weeks: 6, color: 'lime' },
-    { id: 'S', name: 'Signature', price: 18000, weeks: 8, color: 'sky' },
-    { id: 'F', name: 'Flagship', price: 24000, weeks: 12, color: 'orange' },
+    { id: 'E', name: 'Essential', price: 16000, weeks: 6, color: 'lime' },
+    { id: 'S', name: 'Signature', price: 24000, weeks: 8, color: 'sky' },
+    { id: 'F', name: 'Flagship', price: 32000, weeks: 12, color: 'orange' },
   ],
   services: {
     hosting: { name: 'Hosting + CDN', min: 30, max: 60 },

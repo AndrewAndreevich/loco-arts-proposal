@@ -77,7 +77,7 @@ Playwright (`tools/inspect_ref.py`) at 1440×900 and 390×844, computed styles r
   (`framerusercontent.com/assets/5uijHrcLgMOtvBU399PIdv0X2Yo.woff2`, CORS open), preloaded; the file
   is not copied into this repo. Only the Regular weight exists, so all text is set at 400 like the
   reference. Hanken Grotesk is gone; Arial is the fallback. Internal presentation, at the user's request.
-- **Builder data** lives in `data/tiers.js`: rate $30/h, groups with screens, transitions, options per
+- **Builder data** lives in `data/tiers.js`: rate $40/h, groups with screens, transitions, options per
   tier, hours and monthly services. Tier defaults add up to 400 / 600 / 800 h = $12k / $18k / $24k
   and 49 / 51 / 54 screens. Hours per group are our estimate; the 3D-scene CDN cost ($5–20/mo) is an
   estimate not listed in the original proposal.
