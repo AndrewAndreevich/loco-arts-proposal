@@ -127,10 +127,10 @@ src = src.replace('<div class="team reveal">', '<div class="team team-2 reveal">
 # Andrei does the frontend too
 assert src.count('<p class=role>Tech lead · full-stack · backend</p>') == 1, "Andrei's role not found"
 src = src.replace('<p class=role>Tech lead · full-stack · backend</p>', '<p class=role>Tech lead · full-stack · frontend · backend</p>')
-# rate $40/h instead of $30/h: the tier prices go up by the same 4/3
-for old, new in (('$12,000', '$16,000'), ('$18,000', '$24,000'), ('$24,000', '$32,000')):
+# rate $35/h instead of $30/h: the tier prices go up by the same 7/6
+for old, new in (('$12,000', '$14,000'), ('$18,000', '$21,000'), ('$24,000', '$28,000')):
     assert src.count(f'<div class=amt>{old}</div>') == 1, f'price {old} not found'
-for old, new in (('$24,000', '$32,000'), ('$18,000', '$24,000'), ('$12,000', '$16,000')):
+for old, new in (('$24,000', '$28,000'), ('$18,000', '$21,000'), ('$12,000', '$14,000')):
     src = src.replace(f'<div class=amt>{old}</div>', f'<div class=amt>{new}</div>')
 src = src.replace("</div></section>\n</main>", "</div></section>\n<div class=end-logo aria-hidden=true>" + LOGO + "</div>\n</main>", 1)
 assert "end-logo" in src
