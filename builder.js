@@ -605,12 +605,16 @@
     slideTo(api, api.screens[0].id, false);
   }
   groups.forEach(({ api }) => { if (api) wire(api); });
-  // the screen maps draw in when their section scrolls into view (main.js adds .in)
-  groups.forEach(({ api }) => {
-    if (!api) return;
-    const mo = new MutationObserver(() => { if (api.sec.classList.contains('in')) { mo.disconnect(); drawIn(api.sec); } });
-    mo.observe(api.sec, { attributes: true, attributeFilter: ['class'] });
-  });
+  // a screen map draws in only once it reaches the middle of the screen, not at the bottom edge
+  if ('IntersectionObserver' in window) {
+    const mid = new IntersectionObserver((entries) => entries.forEach((en) => {
+      if (!en.isIntersecting || !document.documentElement.classList.contains('js')) return;
+      mid.unobserve(en.target);
+      en.target.classList.add('go');
+      drawIn(en.target.closest('.grp'));
+    }), { rootMargin: '-35% 0px -35% 0px' });
+    groups.forEach(({ api }) => { if (api) mid.observe(api.sec.querySelector('.map')); });
+  }
 
   // ---------- phones: options become cards in the carousel ----------
   const phone = window.matchMedia('(max-width: 720px)');

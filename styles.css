@@ -230,9 +230,8 @@ body { padding-bottom: 96px; }
 .slider .nav[hidden] { display: none; }
 
 /* nodes appear one by one, lines draw in (only with JS and motion allowed) */
-.js .grp .map .node { opacity: 0; transform-box: fill-box; transition: opacity .5s ease; transition-delay: var(--t, 0ms); }
-.js .grp.in .map .node { opacity: 1; }
-.js .grp.in .map .node.xopt.off { opacity: .4; }
+.js .grp.reveal .map .node { transform-box: fill-box; transition: opacity .5s ease; transition-delay: var(--t, 0ms); }
+.js .grp.reveal .map:not(.go) .node { opacity: 0; }
 .js .grp.reveal .map .edge:not(.drawn) { stroke-dasharray: 1; stroke-dashoffset: 1; marker-end: none; }
 .map .mk.run { pointer-events: none; }
 /* wireframe of a screen: nav, body on a grid, footer (all classes w-prefixed to avoid clashes) */
