@@ -208,7 +208,8 @@
     const edges = [...sec.querySelectorAll('.map .edge')];
     if (!edges.length) return;
     const runs = edges.map((e) => {
-      const r = { e, t0: Number(e.dataset.t0), d: Number(e.dataset.d), len: e.getTotalLength() };
+      // linked-screen lines are pieces of one line: constant speed, so the head runs on through the joins
+      const r = { e, t0: Number(e.dataset.t0), d: Number(e.dataset.d), len: e.getTotalLength(), lin: e.classList.contains('bus') };
       // every line gets a moving head, also the shared line and the stubs that lead into it
       r.mk = svg('path', { d: 'M-5 -3 L1 0 L-5 3 Z', class: 'mk run', visibility: 'hidden' }, e.parentNode);
       e.style.strokeDashoffset = 1;
@@ -231,9 +232,9 @@
           return;
         }
         left += 1;
-        const k = ease(u);
+        const k = r.lin ? u : ease(u);
         r.e.style.strokeDashoffset = 1 - k;
-        if (r.mk && u > 0) {
+        if (r.mk && now - start >= r.t0) {
           const at = r.len * k; const p = r.e.getPointAtLength(at);
           r.mk.setAttribute('transform', `translate(${p.x} ${p.y}) rotate(${(dir(r, at) * 180) / Math.PI})`);
           r.mk.classList.toggle('on', r.e.classList.contains('hot'));
@@ -274,8 +275,8 @@
       const p = svg('path', { d: ortho(pts), class: 'edge' + (cls ? ' ' + cls : ''), pathLength: 1 }, gEdges);
       if (arrow) p.setAttribute('marker-end', `url(#ar-${g.id}-a)`);
       p.dataset.e = keys.join(' ');
-      p.dataset.t0 = Math.round(t0);
-      p.dataset.d = Math.round(drawMs(len(pts)));
+      p.dataset.t0 = t0;
+      p.dataset.d = drawMs(len(pts));
     };
     // other groups: one stub down from the screen, branching to each target below
     L.entries.forEach(([src, dst]) => {
@@ -313,8 +314,8 @@
         const touching = c.edges.filter(([a, b]) => a === n || b === n).map(([a, b]) => ek(a, b));
         const target = c.edges.some(([, b]) => b === n);
         const top = xy(n).y;
-        if (target) path([[x, y], [x, top - 3]], touching, '', arr[k], true);
-        else path([[x, top - 1], [x, y]], touching, '', lineAt(col(n)), false);
+        if (target) path([[x, y], [x, top - 3]], touching, 'bus', arr[k], true);
+        else path([[x, top - 1], [x, y]], touching, 'bus', lineAt(col(n)), false);
       });
       for (let k = 0; k < xs.length - 1; k += 1) {
         const x0 = xs[k].x; const x1 = xs[k + 1].x;
@@ -322,8 +323,8 @@
           const lo = Math.min(xy(a).x, xy(b).x) + NW / 2; const hi = Math.max(xy(a).x, xy(b).x) + NW / 2;
           return lo <= x0 && hi >= x1;
         }).map(([a, b]) => ek(a, b));
-        if (arr[k] <= arr[k + 1]) path([[x0, y], [x1, y]], over, '', arr[k], false);
-        else path([[x1, y], [x0, y]], over, '', arr[k + 1], false);
+        if (arr[k] <= arr[k + 1]) path([[x0, y], [x1, y]], over, 'bus', arr[k], false);
+        else path([[x1, y], [x0, y]], over, 'bus', arr[k + 1], false);
       }
     });
 
