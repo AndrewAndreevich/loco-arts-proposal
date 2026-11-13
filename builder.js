@@ -198,6 +198,53 @@
     return `${d} L${lx} ${ly}`;
   }
 
+  // screens fade in column by column; a line leaves its screen once the screen is there
+  const nodeAt = (c) => c * 170;
+  const lineAt = (c) => nodeAt(c) + 260;
+  const drawMs = (px) => Math.max(240, px / 0.2);
+
+  // lines draw from their start; an arrowhead rides the tip and stays at the end (the marker)
+  function drawIn(sec) {
+    const edges = [...sec.querySelectorAll('.map .edge')];
+    if (!edges.length) return;
+    const runs = edges.map((e) => {
+      const r = { e, t0: Number(e.dataset.t0), d: Number(e.dataset.d), len: e.getTotalLength() };
+      // every line gets a moving head, also the shared line and the stubs that lead into it
+      r.mk = svg('path', { d: 'M-5 -3 L1 0 L-5 3 Z', class: 'mk run', visibility: 'hidden' }, e.parentNode);
+      e.style.strokeDashoffset = 1;
+      return r;
+    });
+    const dir = (r, at) => {
+      const a = r.e.getPointAtLength(Math.max(0, at - 1)); const b = r.e.getPointAtLength(Math.min(r.len, Math.max(at, 1)));
+      return Math.atan2(b.y - a.y, b.x - a.x);
+    };
+    const start = performance.now();
+    const ease = (u) => (u < 0.5 ? 2 * u * u : 1 - ((-2 * u + 2) ** 2) / 2);
+    const frame = (now) => {
+      let left = 0;
+      runs.forEach((r) => {
+        if (r.done) return;
+        const u = Math.min(1, Math.max(0, (now - start - r.t0) / r.d));
+        if (u >= 1) {
+          r.done = true; r.e.style.strokeDashoffset = ''; r.e.classList.add('drawn');
+          if (r.mk) r.mk.remove();
+          return;
+        }
+        left += 1;
+        const k = ease(u);
+        r.e.style.strokeDashoffset = 1 - k;
+        if (r.mk && u > 0) {
+          const at = r.len * k; const p = r.e.getPointAtLength(at);
+          r.mk.setAttribute('transform', `translate(${p.x} ${p.y}) rotate(${(dir(r, at) * 180) / Math.PI})`);
+          r.mk.classList.toggle('on', r.e.classList.contains('hot'));
+          r.mk.removeAttribute('visibility');
+        }
+      });
+      if (left) requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  }
+
   function buildMap(g, screens, L) {
     const TOP = L.laneCount ? L.laneCount * LANE + 8 : 4;
     const W = (L.cols - 1) * STEP + NW + 8;
@@ -219,40 +266,55 @@
     const gEdges = svg('g', { class: 'edges' }, s);
     const gNodes = svg('g', { class: 'nodes' }, s);
     const ek = (a, b) => `${a.replace(/^(in|out):/, '')}>${b.replace(/^(in|out):/, '')}`;
-    const path = (pts, keys, cls, i, arrow) => {
+    // draw-in timing (see drawIn): every line starts at its source screen and runs at a steady speed,
+    // so the drawing flows left to right through the map
+    const col = (id) => L.pos[id][0];
+    const len = (pts) => pts.slice(1).reduce((a, q, k) => a + Math.abs(q[0] - pts[k][0]) + Math.abs(q[1] - pts[k][1]), 0);
+    const path = (pts, keys, cls, t0, arrow) => {
       const p = svg('path', { d: ortho(pts), class: 'edge' + (cls ? ' ' + cls : ''), pathLength: 1 }, gEdges);
       if (arrow) p.setAttribute('marker-end', `url(#ar-${g.id}-a)`);
       p.dataset.e = keys.join(' ');
-      p.style.setProperty('--i', i);
+      p.dataset.t0 = Math.round(t0);
+      p.dataset.d = Math.round(drawMs(len(pts)));
     };
-    let i = 0;
     // other groups: one stub down from the screen, branching to each target below
     L.entries.forEach(([src, dst]) => {
       const A = xy('in:' + src); const B = xy(dst);
       const xa = A.x + A.w / 2; const xb = B.x + B.w / 2; const ym = B.y + B.h + ROW2 / 2;
-      path(xa === xb ? [[xa, A.y - 2], [xb, B.y + B.h + 3]] : [[xa, A.y - 2], [xa, ym], [xb, ym], [xb, B.y + B.h + 3]], [ek(src, dst)], 'ext', i++, true);
+      path(xa === xb ? [[xa, A.y - 2], [xb, B.y + B.h + 3]] : [[xa, A.y - 2], [xa, ym], [xb, ym], [xb, B.y + B.h + 3]], [ek(src, dst)], 'ext', lineAt(col('in:' + src)), true);
     });
     L.exits.forEach(([src, t]) => {
       const A = xy(src); const B = xy('out:' + t);
       const xa = A.x + A.w / 2; const xb = B.x + B.w / 2; const ym = A.y + A.h + ROW2 / 2;
-      path(xa === xb ? [[xa, A.y + A.h + 2], [xb, B.y - 3]] : [[xa, A.y + A.h + 2], [xa, ym], [xb, ym], [xb, B.y - 3]], [ek(src, t)], 'ext', i++, true);
+      path(xa === xb ? [[xa, A.y + A.h + 2], [xb, B.y - 3]] : [[xa, A.y + A.h + 2], [xa, ym], [xb, ym], [xb, B.y - 3]], [ek(src, t)], 'ext', lineAt(col(src)), true);
     });
     // neighbours: straight thread
     L.edges.filter(([a, b]) => L.pos[b][0] - L.pos[a][0] === 1).forEach(([a, b]) => {
       const A = xy(a); const B = xy(b);
-      path([[A.x + A.w + 2, A.y + A.h / 2], [B.x - 3, B.y + B.h / 2]], [ek(a, b)], '', i++, true);
+      path([[A.x + A.w + 2, A.y + A.h / 2], [B.x - 3, B.y + B.h / 2]], [ek(a, b)], '', lineAt(col(a)), true);
     });
     // linked screens: one shared line above the row, one stub per screen, arrow into every target
     L.comps.forEach((c) => {
       const y = TOP - 8 - c.lane * LANE;
       const keys = c.edges.map(([a, b]) => ek(a, b));
       const xs = [...c.nodes].map((n) => ({ n, x: xy(n).x + NW / 2 })).sort((u, v) => u.x - v.x);
-      xs.forEach(({ n, x }) => {
+      // when the line reaches each stub: up from every source, then along the shared line both ways
+      const piece = (k) => drawMs(xs[k + 1].x - xs[k].x);
+      const arr = xs.map(() => Infinity);
+      xs.forEach(({ n }, k) => {
+        if (!c.edges.some(([a]) => a === n)) return;
+        let t = lineAt(col(n)) + drawMs(xy(n).y - 1 - y);
+        arr[k] = Math.min(arr[k], t);
+        for (let j = k; j < xs.length - 1; j += 1) { t += piece(j); arr[j + 1] = Math.min(arr[j + 1], t); }
+        t = arr[k];
+        for (let j = k; j > 0; j -= 1) { t += piece(j - 1); arr[j - 1] = Math.min(arr[j - 1], t); }
+      });
+      xs.forEach(({ n, x }, k) => {
         const touching = c.edges.filter(([a, b]) => a === n || b === n).map(([a, b]) => ek(a, b));
         const target = c.edges.some(([, b]) => b === n);
         const top = xy(n).y;
-        if (target) path([[x, y], [x, top - 3]], touching, '', i++, true);
-        else path([[x, top - 1], [x, y]], touching, '', i++, false);
+        if (target) path([[x, y], [x, top - 3]], touching, '', arr[k], true);
+        else path([[x, top - 1], [x, y]], touching, '', lineAt(col(n)), false);
       });
       for (let k = 0; k < xs.length - 1; k += 1) {
         const x0 = xs[k].x; const x1 = xs[k + 1].x;
@@ -260,15 +322,15 @@
           const lo = Math.min(xy(a).x, xy(b).x) + NW / 2; const hi = Math.max(xy(a).x, xy(b).x) + NW / 2;
           return lo <= x0 && hi >= x1;
         }).map(([a, b]) => ek(a, b));
-        path([[x0, y], [x1, y]], over, '', i++, false);
+        if (arr[k] <= arr[k + 1]) path([[x0, y], [x1, y]], over, '', arr[k], false);
+        else path([[x1, y], [x0, y]], over, '', arr[k + 1], false);
       }
     });
 
-    let n = 0;
     const node = (id, cls, label, title, below) => {
       const P = xy(id);
       const gg = svg('g', { class: 'node ' + cls, transform: `translate(${P.x} ${P.y})`, tabindex: 0, role: 'button', 'aria-label': title }, gNodes);
-      gg.style.setProperty('--i', n++);
+      gg.style.setProperty('--t', `${nodeAt(col(id))}ms`);
       svg('title', {}, gg).textContent = title;
       svg('rect', { class: 'pg', width: P.w, height: P.h, rx: 3 }, gg);
       const t = svg('text', { x: P.w / 2, y: P.h / 2 + 3.5, 'text-anchor': 'middle' }, gg);
@@ -543,6 +605,12 @@
     slideTo(api, api.screens[0].id, false);
   }
   groups.forEach(({ api }) => { if (api) wire(api); });
+  // the screen maps draw in when their section scrolls into view (main.js adds .in)
+  groups.forEach(({ api }) => {
+    if (!api) return;
+    const mo = new MutationObserver(() => { if (api.sec.classList.contains('in')) { mo.disconnect(); drawIn(api.sec); } });
+    mo.observe(api.sec, { attributes: true, attributeFilter: ['class'] });
+  });
 
   // ---------- phones: options become cards in the carousel ----------
   const phone = window.matchMedia('(max-width: 720px)');
